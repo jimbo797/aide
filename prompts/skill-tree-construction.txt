@@ -1,0 +1,10 @@
+You are organizing skills into a hierarchical skill tree.
+
+Rules:
+- Skills should be grouped under broader parent skills
+- Parent nodes should represent abstractions of children
+- Keep depth <= 4
+- Do not invent skills not in the list
+
+Skill list:
+{skills}

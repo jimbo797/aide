@@ -1,0 +1,11 @@
+You are converting a grading rubric into atomic student skills.
+
+For each criterion:
+- Ignore scoring language (e.g., "demonstrates", "shows")
+- Extract the underlying competencies
+- Break compound ideas into separate skills
+- Avoid duplication
+- Return a flat list of skills
+
+Rubric:
+{rubric_text}
