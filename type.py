@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field
 
 # ratas rubric knowledge tree (RKT)
 class RKTSimpleRule(BaseModel):
-  type: Literal["simple"] = "simple rule"
+  type: Literal["simple rule"] = "simple rule"
   rule: str
 
 Rule = Annotated[
@@ -39,12 +39,12 @@ Rule = Annotated[
 ]
 
 class RKTBasicRule(BaseModel):
-  type: Literal["basic"] = "basic rule"
+  type: Literal["basic rule"] = "basic rule"
   description: str
   children: List[Rule]
 
 class RKTRubricLine(BaseModel):
-  type: Literal["line"] = "rubric line"
+  type: Literal["rubric line"] = "rubric line"
   description: str
   children: List[Rule]
 

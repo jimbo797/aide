@@ -2,8 +2,9 @@
 
 import json
 from pathlib import Path
-
+import os
 from type import RKTRoot
+
 
 
 def save_skill_tree(root: RKTRoot, path: str | Path) -> None:
@@ -20,3 +21,12 @@ def load_skill_tree(path: str | Path) -> RKTRoot:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return RKTRoot.model_validate(data)
+
+if __name__ == "__main__":
+    dir = os.path.dirname(os.path.abspath(__file__))
+    rubric_name = "open-ended-response"
+    RUBRIC_PATH = f"{rubric_name}.csv"
+    TREE_PATH = f"{rubric_name}.json"
+
+    skill_tree = load_skill_tree(os.path.join(dir, "rubrics", TREE_PATH))
+    print(skill_tree)
