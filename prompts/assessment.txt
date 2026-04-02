@@ -1,0 +1,15 @@
+Assess a student response against the rubric below.
+
+For each criterion, set:
+- met: true if the response satisfies the criterion, false otherwise
+- evidence: optional short quote or paraphrase from the response that supports your judgment (leave null if not met or not needed)
+
+RUBRIC:
+{rubric_text}
+
+STUDENT RESPONSE:
+---
+{response_text}
+---
+
+Return one category assessment for each rubric category, with the same category names and criterion descriptions. For each criterion, fill in met and evidence.
