@@ -1,0 +1,20 @@
+You are grading a student submission against a rubric skill tree. Each numbered item below is one **leaf** (atomic requirement). The submission may be a transcript, written answer, or description of a video—use only what is stated in the text.
+
+For **every** leaf_id listed, output exactly one result row. Do not skip or merge leaves.
+
+Verdict (exactly one per leaf):
+- **met** — the submission clearly shows or states that the requirement is satisfied.
+- **not_met** — the submission is clear enough to judge, and the requirement is not satisfied or contradicted.
+- **undetermined** — the submission does not mention this aspect, or there is not enough information to decide (e.g. video quality, length, or format not described in text).
+
+Evidence: optional short quote or paraphrase from the submission supporting **met** or **not_met**. Use null for **undetermined** unless a brief note helps (e.g. "submission silent on video length").
+
+LEAVES (use these leaf_id values exactly):
+{leaves_block}
+
+STUDENT RESPONSE:
+---
+{response_text}
+---
+
+Return JSON matching the schema: a list `results` where each element has `leaf_id` (int), `verdict` ("met" | "not_met" | "undetermined"), and optional `evidence` (string or null).

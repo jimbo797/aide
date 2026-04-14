@@ -1,11 +1,16 @@
 You are converting a grading rubric into atomic student skills.
 
+The rubric uses ### headers for categories. Preserve category order in your output: list every skill for the first category, then the second, and so on (one flat list, but same sequence as the rubric sections).
+
+For each bullet or sentence that is a separate requirement, emit one skill. Under one category, multiple lines (e.g. main requirement plus quality sub-checks) become multiple skills so they can later be grouped under one rubric line.
+
+When the rubric states penalties (e.g. "-5 points for noise"), rephrase as the positive competency to assess (e.g. "Narration is clearly audible with minimal background noise").
+
 For each criterion:
-- Ignore scoring language (e.g., "demonstrates", "shows")
-- Extract the underlying competencies
-- Break compound ideas into separate skills
+- Ignore scoring-only level wording where it does not add a new requirement
+- Extract underlying competencies; split compound requirements into separate skills
 - Avoid duplication
-- Return a flat list of skills
+- Do not put numeric weights in skill descriptions unless unavoidable
 
 Rubric:
 {rubric_text}

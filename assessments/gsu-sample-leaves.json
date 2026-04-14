@@ -1,0 +1,152 @@
+[
+  {
+    "leaf_id": 0,
+    "category": "The length of the  video should be approximately 5 minutes (no more than 6 mi...",
+    "category_weight": 5.0,
+    "basic_group": null,
+    "criterion": "Plan and estimate video duration to approximately five minutes",
+    "leaf_weight": null,
+    "verdict": "undetermined",
+    "evidence": "no duration info"
+  },
+  {
+    "leaf_id": 1,
+    "category": "The length of the  video should be approximately 5 minutes (no more than 6 mi...",
+    "category_weight": 5.0,
+    "basic_group": null,
+    "criterion": "Enforce a maximum video duration of six minutes",
+    "leaf_weight": null,
+    "verdict": "undetermined",
+    "evidence": "no duration info"
+  },
+  {
+    "leaf_id": 2,
+    "category": "Your video should audio naration of the tasks and actions you are demonstrati...",
+    "category_weight": 10.0,
+    "basic_group": null,
+    "criterion": "Provide clear audio narration of tasks and actions demonstrated",
+    "leaf_weight": null,
+    "verdict": "met",
+    "evidence": "Hello, I will be demonstrating how to use the SUMPRODUCT function, a vertical sort, a stacked column chart, and how to use a filter."
+  },
+  {
+    "leaf_id": 3,
+    "category": "Very low volume or significant noise intereference for naration (-5 points)",
+    "category_weight": -5.0,
+    "basic_group": null,
+    "criterion": "Produce narration with clear audible volume and minimize background noise",
+    "leaf_weight": -5.0,
+    "verdict": "undetermined",
+    "evidence": "volume quality not described"
+  },
+  {
+    "leaf_id": 4,
+    "category": "Your video should include moving images that demonstrate the skills you are t...",
+    "category_weight": 20.0,
+    "basic_group": null,
+    "criterion": "Include moving images that demonstrate the skills being taught",
+    "leaf_weight": null,
+    "verdict": "met",
+    "evidence": "describes steps that involve moving images (e.g., 'perform dragging', 'sort data table', 'create a chart')"
+  },
+  {
+    "leaf_id": 5,
+    "category": "< 480p  (-3 points)  or low quality screen resolution does not allow reading ...",
+    "category_weight": -3.0,
+    "basic_group": null,
+    "criterion": "Ensure screen resolution is sufficient for readability of data (avoid low-resolution screens)",
+    "leaf_weight": -3.0,
+    "verdict": "undetermined",
+    "evidence": "resolution not described"
+  },
+  {
+    "leaf_id": 6,
+    "category": "hand held camera (cell phone) recording of screen (-10 points)",
+    "category_weight": -10.0,
+    "basic_group": null,
+    "criterion": "Use a stable filming setup rather than handheld recording when capturing the screen",
+    "leaf_weight": -10.0,
+    "verdict": "undetermined",
+    "evidence": "filming setup not described"
+  },
+  {
+    "leaf_id": 7,
+    "category": "Webcam image blocks an important part of the demonstration (-2 points)",
+    "category_weight": -2.0,
+    "basic_group": null,
+    "criterion": "Position webcam so it does not block important parts of the demonstration",
+    "leaf_weight": -2.0,
+    "verdict": "undetermined",
+    "evidence": "webcam blocking not described"
+  },
+  {
+    "leaf_id": 8,
+    "category": "Student should include their selfie video (5 points).",
+    "category_weight": 5.0,
+    "basic_group": null,
+    "criterion": "Include a selfie video segment",
+    "leaf_weight": 5.0,
+    "verdict": "not_met",
+    "evidence": "no selfie video segment mentioned"
+  },
+  {
+    "leaf_id": 9,
+    "category": "Include post-production text. This can either be instructions as part of the ...",
+    "category_weight": 5.0,
+    "basic_group": null,
+    "criterion": "Add post-production text such as instructions, titles, credits, or jokes",
+    "leaf_weight": 5.0,
+    "verdict": "undetermined",
+    "evidence": "post-production text not mentioned"
+  },
+  {
+    "leaf_id": 10,
+    "category": "Missing URL in original submission comment",
+    "category_weight": 5.0,
+    "basic_group": null,
+    "criterion": "Provide missing URL in submission comment",
+    "leaf_weight": 5.0,
+    "verdict": "undetermined",
+    "evidence": "missing URL not discussed"
+  },
+  {
+    "leaf_id": 11,
+    "category": "This video would be better if you described the purpose of the function/capab...",
+    "category_weight": -4.0,
+    "basic_group": null,
+    "criterion": "Describe the purpose of the function/capability demonstrated",
+    "leaf_weight": -4.0,
+    "verdict": "not_met",
+    "evidence": "no explicit purpose described for the function demonstrated"
+  },
+  {
+    "leaf_id": 12,
+    "category": "Mentioning alternate uses is similar to discussing the purpose, but this this...",
+    "category_weight": 2.0,
+    "basic_group": null,
+    "criterion": "Discuss alternate uses of the function/capability demonstrated",
+    "leaf_weight": 2.0,
+    "verdict": "undetermined",
+    "evidence": "no discussion of alternate uses"
+  },
+  {
+    "leaf_id": 13,
+    "category": "This video would be better if it provided more description of the data used w...",
+    "category_weight": -2.0,
+    "basic_group": null,
+    "criterion": "Provide more description of the data used when introducing the task",
+    "leaf_weight": -2.0,
+    "verdict": "not_met",
+    "evidence": "more description of data used is not provided; only references to data columns"
+  },
+  {
+    "leaf_id": 14,
+    "category": "This video would be better by showing how to find help for for the target cap...",
+    "category_weight": -4.0,
+    "basic_group": null,
+    "criterion": "Show how to find help for the target capability",
+    "leaf_weight": -4.0,
+    "verdict": "undetermined",
+    "evidence": "no guidance on finding help provided"
+  }
+]

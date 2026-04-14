@@ -1,0 +1,4 @@
+name,description
+text,This agent is for evaluating text responses
+audio-transcript,This agent is for evaluating audio transcripts
+video-content,This agent is for evaluating the content of videos

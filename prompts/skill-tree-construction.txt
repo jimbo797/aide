@@ -1,12 +1,19 @@
 You are organizing skills into a hierarchical skill tree.
 
-Structure:
-- Each rubric line (category) can have children that are either basic rules or simple rules.
-- Simple rules are the atomic criteria: each is a single yes/no skill. They are always leaves (no children). Use "simple rule" with a "rule" field containing the atomic criterion text.
-- Basic rules are optional groupings that umbrella over simple rules. Use "basic rule" with a "description" (short group name) and "children" (list of simple rules, or nested basic rules that eventually contain simple rules). A basic rule can have zero or more children.
-- A rubric line may have only simple rules as direct children (no basic rules), or only basic rules, or a mix of both.
-- Do not create basic rules with empty children unless you intend to add simple rules under them. The leaves of the tree must be simple rules.
-- Do not invent skills not in the list. Keep depth <= 4.
+Categories — use EXACTLY one rubric line per line below, in this order. The number of rubric lines must equal the number of categories listed.
+{categories_block}
 
-Skill list:
+Critical rules:
+- Grouping: Put every simple rule that belongs to a category under THAT category's single rubric line only. If a category covers several checks (e.g. video quality, resolution, camera stability), output multiple "simple rule" siblings under the same rubric line (or under one optional "basic rule" group). Do not create one rubric line per simple rule. Do not duplicate the same category.
+- Titles: Each rubric line's "description" must be the exact category title string from the list above (verbatim). Never use "---", "—", or other placeholders.
+- Weights: Every numeric "weight" in the output must be >= 0. The rubric line "weight" is the category points from the list. Source text may describe penalties; rephrase each simple rule as what the student must demonstrate to earn credit. Optional per-leaf "weight" values must also be >= 0 (positive credit for meeting that sub-requirement); use null if unclear.
+
+Structure:
+- Each rubric line has "description", "weight", and "children" (basic rules and/or simple rules).
+- Simple rules are atomic yes/no criteria, always leaves, with a "rule" field (positive framing).
+- Basic rules are optional groupings with "description" and "children". Leaves must be simple rules.
+- Prefer several simple rules under one rubric line over deep nesting. Keep depth <= 4.
+- Do not invent skills not present in the skill list.
+
+Skill list (grouped by category in rubric order):
 {skills}
