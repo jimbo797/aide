@@ -1,7 +1,8 @@
 """Render an RKTRoot skill tree as a visual ASCII tree."""
 
 from type import RKTRoot, RKTRubricLine, RKTBasicRule, RKTSimpleRule
-
+from rkt_io import load_skill_tree
+import os
 
 def _rule_text(rule) -> str:
     """Get display text for a rule from description or rule field."""
@@ -62,3 +63,8 @@ def render_skill_tree(root: RKTRoot) -> str:
     for i, row in enumerate(rows):
         lines.extend(_format_rubric_line(row, "", is_last=(i == len(rows) - 1)))
     return "\n".join(lines)
+
+if __name__ == "__main__":
+    dir = os.path.dirname(os.path.abspath(__file__))
+    skill_tree = load_skill_tree(os.path.join(dir, "rubrics", "gsu-sumprod.json"))
+    print(render_skill_tree(skill_tree))
