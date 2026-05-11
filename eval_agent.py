@@ -7,7 +7,8 @@ Per-leaf agentic evaluation against a pre-built RKT skill tree.
 2. Load that tree once, flatten to atomic leaves.
 3. For each student submission, for each leaf, run a small tool loop: the model may call
    read_submission / search_submission, optionally get_video_metadata (when a local video path
-   or YouTube URL is configured for the run), then must call submit_leaf_verdict for that leaf.
+   or YouTube URL is configured for the run), optionally get_video_frame_summaries (when a
+   ``video_frame_summarize.py`` JSON path is configured), then must call submit_leaf_verdict for that leaf.
 
 For programmatic tree construction from CSV/TXT (without the agent), use
 ``materialize_rubric_tree`` from this module — same pipeline as ``ratas-rubric.py``.
@@ -157,9 +158,28 @@ class PerLeafAgentState:
     youtube: YouTubeMediaConfig | None = None
     #: Shared across leaves so ``get_video_metadata`` only hits ffprobe / YouTube once per run.
     metadata_cache: dict[str, Any] | None = None
+    #: Pre-loaded output of ``video_frame_summarize.py`` (shared across leaves for this submission).
+    video_frame_summaries: list[dict[str, Any]] | None = None
 
 
-def _per_leaf_tool_schemas(*, include_video_metadata: bool) -> list[dict[str, Any]]:
+def _load_video_frame_summaries_json(path: Path) -> list[dict[str, Any]]:
+    """Load ``video_frame_summarize.py`` output: a JSON array of objects with ``annotation``."""
+    raw = path.read_text(encoding="utf-8")
+    data = json.loads(raw)
+    if not isinstance(data, list):
+        raise ValueError("Expected a JSON array of frame summary objects")
+    out: list[dict[str, Any]] = []
+    for item in data:
+        if isinstance(item, dict) and isinstance(item.get("annotation"), dict):
+            out.append(item)
+    return out
+
+
+def _per_leaf_tool_schemas(
+    *,
+    include_video_metadata: bool,
+    include_video_frame_summaries: bool,
+) -> list[dict[str, Any]]:
     tools: list[dict[str, Any]] = [
         {
             "type": "function",
@@ -216,6 +236,34 @@ def _per_leaf_tool_schemas(*, include_video_metadata: bool) -> list[dict[str, An
                         "Repeated calls return cached metadata for the same run."
                     ),
                     "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        )
+    if include_video_frame_summaries:
+        tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_video_frame_summaries",
+                    "description": (
+                        "Read pre-processed vision summaries of key video frames (from video_frame_summarize.py). "
+                        "Omit frame_indices to get a compact index of every frame (time, path, short preview). "
+                        "Pass frame_indices (0-based) to fetch full structured annotations for up to 10 frames per call — "
+                        "use after scanning the index. Evidence for rubric leaves may appear only in these summaries."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "frame_indices": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": (
+                                    "If omitted or empty: return index for all frames. "
+                                    "If set: return full annotation for these 0-based indices (max 10 per call)."
+                                ),
+                            },
+                        },
+                    },
                 },
             }
         )
@@ -320,6 +368,67 @@ def _dispatch_per_leaf_tool(state: PerLeafAgentState, name: str, args: dict[str,
             cache[cache_key] = result
         return result
 
+    if name == "get_video_frame_summaries":
+        loaded = state.video_frame_summaries
+        if loaded is None:
+            return {
+                "ok": False,
+                "error": "No video frame summaries configured for this run (--video-frame-summaries).",
+            }
+        raw_indices = args.get("frame_indices")
+        if raw_indices is None or raw_indices == []:
+            frames_out: list[dict[str, Any]] = []
+            for i, item in enumerate(loaded):
+                ann = item.get("annotation") or {}
+                so = str(ann.get("scene_overview") or "")
+                if len(so) > 280:
+                    so = so[:277] + "..."
+                frames_out.append(
+                    {
+                        "index": i,
+                        "time_seconds": item.get("time_seconds"),
+                        "frame_path": item.get("frame_path"),
+                        "preview": so,
+                    }
+                )
+            return {"ok": True, "mode": "index", "total": len(loaded), "frames": frames_out}
+
+        if not isinstance(raw_indices, list):
+            return {"ok": False, "error": "frame_indices must be an array of integers or omitted."}
+        parsed_indices: list[int] = []
+        for x in raw_indices:
+            try:
+                parsed_indices.append(int(x))
+            except (TypeError, ValueError):
+                return {"ok": False, "error": f"Invalid frame index: {x!r}"}
+        seen: set[int] = set()
+        uniq: list[int] = []
+        for ix in parsed_indices:
+            if ix in seen:
+                continue
+            seen.add(ix)
+            uniq.append(ix)
+            if len(uniq) >= 10:
+                break
+        details: list[dict[str, Any]] = []
+        for ix in uniq:
+            if ix < 0 or ix >= len(loaded):
+                details.append({"index": ix, "ok": False, "error": "index out of range"})
+                continue
+            item = loaded[ix]
+            details.append(
+                {
+                    "index": ix,
+                    "ok": True,
+                    "time_seconds": item.get("time_seconds"),
+                    "frame_path": item.get("frame_path"),
+                    "label": item.get("label"),
+                    "model": item.get("model"),
+                    "annotation": item.get("annotation"),
+                }
+            )
+        return {"ok": True, "mode": "detail", "frames": details}
+
     if name == "submit_leaf_verdict":
         verdict = args.get("verdict")
         if verdict not in ("met", "not_met", "undetermined"):
@@ -335,7 +444,12 @@ def _dispatch_per_leaf_tool(state: PerLeafAgentState, name: str, args: dict[str,
     return {"ok": False, "error": f"Unknown tool: {name}"}
 
 
-def _single_leaf_system_prompt(L: RubricLeafRef, *, has_video_metadata_tool: bool) -> str:
+def _single_leaf_system_prompt(
+    L: RubricLeafRef,
+    *,
+    has_video_metadata_tool: bool,
+    has_video_frame_summaries_tool: bool,
+) -> str:
     basic = (L.basic_group or "").strip()
     basic_line = f'Basic rule group: "{basic}"\n' if basic else ""
     cw = L.category_weight
@@ -352,6 +466,14 @@ def _single_leaf_system_prompt(L: RubricLeafRef, *, has_video_metadata_tool: boo
             "- You may call get_video_metadata to read duration and technical details of the student's "
             "video (local file or YouTube URL configured for this run; results are cached if you call again).\n"
         )
+    summaries_line = ""
+    if has_video_frame_summaries_tool:
+        summaries_line = (
+            "- You may call get_video_frame_summaries with no arguments to list pre-processed vision descriptions "
+            "of key video frames (timestamps and short previews), then call it again with frame_indices "
+            "(up to 10 per call) for full annotations (verbatim on-screen text, spreadsheets, UI). "
+            "Use this when the written submission is thin but the video frames were summarized.\n"
+        )
     return f"""You are a fair grader. Evaluate exactly ONE atomic criterion (one rubric leaf).
 
 leaf_id (for your logs only): {L.leaf_id}
@@ -363,7 +485,7 @@ Category: {L.category!r}
 
 Instructions:
 - Inspect the student submission via read_submission and search_submission. Do not assume you already have the full text in chat.
-{video_line}- When you can decide, call submit_leaf_verdict once with verdict met, not_met, or undetermined.
+{video_line}{summaries_line}- When you can decide, call submit_leaf_verdict once with verdict met, not_met, or undetermined.
 - Use undetermined if the submission does not address this requirement or there is not enough information (e.g. no transcript and no usable metadata).
 - For met or not_met, include a short evidence string (quote or paraphrase, or duration facts from metadata) when possible.
 - You must call submit_leaf_verdict to complete this task."""
@@ -385,11 +507,22 @@ def run_single_leaf_agent_loop(
     model_name = model or os.environ.get("OPENAI_EVAL_AGENT_MODEL", "gpt-4o-mini")
     client = OpenAI()
     has_video = state.video_path is not None or state.youtube is not None
-    tools = _per_leaf_tool_schemas(include_video_metadata=has_video)
+    has_summaries = state.video_frame_summaries is not None
+    tools = _per_leaf_tool_schemas(
+        include_video_metadata=has_video,
+        include_video_frame_summaries=has_summaries,
+    )
     L = state.leaf
 
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": _single_leaf_system_prompt(L, has_video_metadata_tool=has_video)},
+        {
+            "role": "system",
+            "content": _single_leaf_system_prompt(
+                L,
+                has_video_metadata_tool=has_video,
+                has_video_frame_summaries_tool=has_summaries,
+            ),
+        },
         {
             "role": "user",
             "content": (
@@ -480,6 +613,7 @@ def evaluate_submission_per_leaf_agents(
     max_turns_per_leaf: int = 16,
     video_path: str | Path | None = None,
     youtube: YouTubeMediaConfig | None = None,
+    video_frame_summaries_path: str | Path | None = None,
     on_leaf_done: Callable[[dict[str, Any], int, int], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
@@ -494,6 +628,9 @@ def evaluate_submission_per_leaf_agents(
     If ``youtube`` is set (``YouTubeMediaConfig``), the same tool uses yt-dlp metadata only (no download).
     At most one of ``video_path`` and ``youtube`` should be set. The model does not choose the URL/path.
 
+    If ``video_frame_summaries_path`` is set, ``get_video_frame_summaries`` exposes pre-computed
+    vision annotations (JSON from ``video_frame_summarize.py``), loaded once for the whole run.
+
     Metadata is cached in-memory for the whole submission run so each leaf does not re-fetch YouTube.
     """
     if video_path and youtube:
@@ -506,6 +643,13 @@ def evaluate_submission_per_leaf_agents(
     vpath = Path(video_path).resolve() if video_path else None
     metadata_cache: dict[str, Any] = {}
 
+    summaries_data: list[dict[str, Any]] | None = None
+    if video_frame_summaries_path:
+        sp = Path(video_frame_summaries_path).resolve()
+        if not sp.is_file():
+            raise ValueError(f"video_frame_summaries_path is not a file: {sp}")
+        summaries_data = _load_video_frame_summaries_json(sp)
+
     for i, L in enumerate(leaves):
         state = PerLeafAgentState(
             submission_text=submission_text,
@@ -513,6 +657,7 @@ def evaluate_submission_per_leaf_agents(
             video_path=vpath,
             youtube=youtube,
             metadata_cache=metadata_cache,
+            video_frame_summaries=summaries_data,
         )
         row, turns = run_single_leaf_agent_loop(state, model=model, max_turns=max_turns_per_leaf)
         merged.append(row)
@@ -622,6 +767,16 @@ def main() -> None:
         action="store_true",
         help="With --youtube-url: only yt-dlp's default YouTube client (no automatic retries)",
     )
+    parser.add_argument(
+        "--video-frame-summaries",
+        metavar="PATH",
+        type=Path,
+        default=None,
+        help=(
+            "JSON array from video_frame_summarize.py. Enables get_video_frame_summaries "
+            "(index + per-frame vision annotations)."
+        ),
+    )
     args = parser.parse_args()
 
     if args.video and args.youtube_url:
@@ -691,6 +846,13 @@ def main() -> None:
             youtube_player_fallback=not args.no_youtube_player_fallback,
         )
 
+    summaries_path: Path | None = None
+    if args.video_frame_summaries:
+        summaries_path = args.video_frame_summaries.resolve()
+        if not summaries_path.is_file():
+            print(f"Video frame summaries file not found: {summaries_path}", file=sys.stderr)
+            sys.exit(1)
+
     def progress(row: dict[str, Any], index: int, total: int) -> None:
         if args.quiet:
             return
@@ -704,6 +866,7 @@ def main() -> None:
         max_turns_per_leaf=args.max_turns_per_leaf,
         video_path=video_arg,
         youtube=youtube_cfg,
+        video_frame_summaries_path=summaries_path,
         on_leaf_done=progress,
     )
 

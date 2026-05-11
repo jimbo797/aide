@@ -54,7 +54,7 @@ Both modes use the **same** RKT JSON and the same **leaf list** (`flatten_rubric
 | Mode | Entry point | Behavior |
 |------|-------------|----------|
 | **Batch (one LLM call)** | `assess_leaves.py` / `assess_response_leaves` | Sends all leaves + full response text in one request (`prompts/leaf-assessment.txt`). Cheaper and faster. |
-| **Per-leaf agent** | `eval_agent.py` | Loads the tree once; for **each leaf**, a short tool loop: `read_submission`, `search_submission`, optional `get_video_metadata` (local file via ffprobe or YouTube via yt-dlp, no download), then `submit_leaf_verdict`. Better when the model needs to search or read long submissions in chunks, or use video duration metadata. |
+| **Per-leaf agent** | `eval_agent.py` | Loads the tree once; for **each leaf**, a short tool loop: `read_submission`, `search_submission`, optional `get_video_metadata` (local file via ffprobe or YouTube via yt-dlp, no download), optional `get_video_frame_summaries` (pre-computed vision text from `video_frame_summarize.py`), then `submit_leaf_verdict`. Better when the model needs to search or read long submissions in chunks, or use video / frame-summary evidence. |
 
 Neither mode computes a final course grade by itself; combine verdicts with weights in your own policy or spreadsheet.
 
@@ -71,10 +71,12 @@ Requires a **pre-built** RKT JSON (from step 1). Optional video metadata:
 
 - **`--video PATH`** — local file; metadata via **ffprobe** (ffmpeg).
 - **`--youtube-url URL`** — metadata only via **yt-dlp** (`pip install yt-dlp`); optional **`--cookies`** / **`--cookies-from-browser`** for unlisted or login-gated videos (same idea as `audio-transcription/youtube_transcribe.py`).
+- **`--video-frame-summaries PATH`** — JSON array produced by **`video_frame_summarize.py`** (after **`video_frame_extract.py`**). Enables **`get_video_frame_summaries`**: list all frames (timestamps + short previews), then fetch full structured annotations for chosen indices (verbatim UI text, spreadsheets, etc.). Independent of `--video` / `--youtube-url`; you can use summaries alone or together with metadata.
 
 ```bash
 python3 eval_agent.py rubrics/gsu-sumprod.json sample-responses/gsu-student-response.txt -o assessments/agent.json
 python3 eval_agent.py rubrics/gsu-sumprod.json transcript.txt --youtube-url 'https://www.youtube.com/watch?v=...' -o out.json
+python3 eval_agent.py rubrics/gsu-sumprod.json transcript.txt --video-frame-summaries summaries.json -o out.json
 ```
 
 Programmatic tree build without the agent: `eval_agent.materialize_rubric_tree` (same pipeline as `ratas-rubric.py`).
@@ -105,6 +107,7 @@ merged, batch = assess_response_leaves(rubric, text)
 | `weighted_rubric.py` | CSV/TXT → weighted rows; formatting for extraction. |
 | `rubric_normalize.py` | Canonical normalized rubric JSON. |
 | `video_metadata.py` | ffprobe (local) / yt-dlp (URL) for `get_video_metadata`. |
+| `video_frame_extract.py` / `video_frame_summarize.py` | Keyframes + vision annotations; feed `--video-frame-summaries` into `eval_agent.py`. |
 
 ---
 
@@ -113,5 +116,5 @@ merged, batch = assess_response_leaves(rubric, text)
 1. Author rubric (CSV or TXT).
 2. `python3 ratas-rubric.py your-rubric.csv -o rubrics/your-rubric.json`
 3. Save student text (transcript, essay, LMS export) as `.txt`.
-4. Either `python3 assess_leaves.py rubrics/your-rubric.json student.txt -o …` **or** `python3 eval_agent.py rubrics/your-rubric.json student.txt -o …` (add `--video PATH` or r URL` on the eval_agent command when you need metadata).
+4. Either `python3 assess_leaves.py rubrics/your-rubric.json student.txt -o …` **or** `python3 eval_agent.py rubrics/your-rubric.json student.txt -o …` (add `--video PATH`, `--youtube-url URL`, and/or `--video-frame-summaries summaries.json` on the eval_agent command when you need video metadata or pre-processed frame descriptions).
 5. Aggregate points using your grading policy.
