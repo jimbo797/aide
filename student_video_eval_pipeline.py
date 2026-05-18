@@ -50,9 +50,29 @@ def _run_extract(csv_path: Path, extract_root: Path, extra: list[str]) -> list[d
         check=False,
     )
     if proc.returncode != 0:
+        err = (proc.stderr or "").strip()
+        out = (proc.stdout or "").strip()
         sys.stderr.write(proc.stderr or "")
-        raise RuntimeError(f"video_frame_extract.py failed (exit {proc.returncode})")
-    data = json.loads(proc.stdout)
+        sys.stderr.write(proc.stdout or "")
+        detail = err or out or "(no stdout/stderr)"
+        raise RuntimeError(
+            f"video_frame_extract.py failed (exit {proc.returncode}): {detail[:2000]}"
+        )
+    raw_out = (proc.stdout or "").strip()
+    if not raw_out:
+        sys.stderr.write(proc.stderr or "")
+        raise RuntimeError(
+            "video_frame_extract.py produced no stdout (expected a JSON array). "
+            f"stderr tail: {(proc.stderr or '')[-1500:]!r}"
+        )
+    try:
+        data = json.loads(raw_out)
+    except json.JSONDecodeError as e:
+        sys.stderr.write(proc.stderr or "")
+        raise RuntimeError(
+            f"video_frame_extract.py stdout is not valid JSON ({e}). "
+            f"First 500 chars: {raw_out[:500]!r}"
+        ) from e
     if not isinstance(data, list):
         raise ValueError("video_frame_extract.py did not print a JSON array")
     return data
@@ -74,9 +94,14 @@ def _run_transcribe(url: str, extra: list[str]) -> str:
         check=False,
     )
     if proc.returncode != 0:
+        err = (proc.stderr or "").strip()
+        out = (proc.stdout or "").strip()
         sys.stderr.write(proc.stderr or "")
         sys.stderr.write(proc.stdout or "")
-        raise RuntimeError(f"youtube_transcribe.py failed (exit {proc.returncode})")
+        detail = err or out or "(no stdout/stderr)"
+        raise RuntimeError(
+            f"youtube_transcribe.py failed (exit {proc.returncode}): {detail[:2000]}"
+        )
     return (proc.stdout or "").strip()
 
 
@@ -114,6 +139,9 @@ def _transcribe_manifest(
         label = (entry.get("label") or "").strip() or url
         if not url or not wd:
             continue
+        if (entry.get("error") or "").strip():
+            print(f"[transcribe] skip {label} (extract failed)", flush=True)
+            continue
         out_txt = Path(wd) / "transcript.txt"
         if out_txt.is_file() and out_txt.stat().st_size > 0 and not force_transcribe:
             print(f"[transcribe] reuse {label}", flush=True)
@@ -138,7 +166,10 @@ def _run_summarize(summary_json: Path, output_json: Path, extra: list[str]) -> N
     if proc.returncode != 0:
         sys.stderr.write(proc.stdout or "")
         sys.stderr.write(proc.stderr or "")
-        raise RuntimeError(f"video_frame_summarize.py failed (exit {proc.returncode})")
+        detail = (proc.stderr or proc.stdout or "").strip() or "(no stdout/stderr)"
+        raise RuntimeError(
+            f"video_frame_summarize.py failed (exit {proc.returncode}): {detail[:2000]}"
+        )
 
 
 def _summaries_for_label(all_summaries: list[dict[str, Any]], label: str) -> list[dict[str, Any]]:
@@ -484,22 +515,28 @@ def main() -> None:
         summaries_path = sub_dir / "video_frame_summaries.json"
         summaries_arg: Path | None = summaries_path if summaries_path.is_file() else None
 
-        print(f"[eval] {label}", flush=True)
-        text = submission_path.read_text(encoding="utf-8")
-        youtube_cfg = YouTubeMediaConfig(url=url)
+        extract_err = (entry.get("error") or "").strip()
+        if extract_err:
+            print(f"[eval] skip {label} (extract failed)", flush=True)
+            merged: list[dict[str, Any]] = []
+            transcripts: dict[str, Any] = {}
+        else:
+            print(f"[eval] {label}", flush=True)
+            text = submission_path.read_text(encoding="utf-8")
+            youtube_cfg = YouTubeMediaConfig(url=url)
 
-        eval_kwargs: dict[str, Any] = {
-            "rubric": rubric,
-            "submission_text": text,
-            "max_turns_per_leaf": args.max_turns_per_leaf,
-            "video_path": None,
-            "youtube": youtube_cfg,
-            "video_frame_summaries_path": summaries_arg,
-        }
-        if args.model:
-            eval_kwargs["model"] = args.model
+            eval_kwargs: dict[str, Any] = {
+                "rubric": rubric,
+                "submission_text": text,
+                "max_turns_per_leaf": args.max_turns_per_leaf,
+                "video_path": None,
+                "youtube": youtube_cfg,
+                "video_frame_summaries_path": summaries_arg,
+            }
+            if args.model:
+                eval_kwargs["model"] = args.model
 
-        merged, transcripts = evaluate_submission_per_leaf_agents(**eval_kwargs)
+            merged, transcripts = evaluate_submission_per_leaf_agents(**eval_kwargs)
 
         assessment_path = sub_dir / "assessment_leaves.json"
         assessment_path.write_text(json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -525,14 +562,18 @@ def main() -> None:
                 "submission_txt": str(submission_path.relative_to(work)),
                 "assessment_json": str(assessment_path.relative_to(work)),
                 "aggregate": agg,
+                "extract_error": extract_err or None,
             }
         )
         pct = agg["percent_of_graded_leaves"]
         pct_s = f"{pct}%" if pct is not None else "n/a"
-        print(
-            f"         → {agg['earned_points']}/{agg['possible_points']} weighted pts ({pct_s})",
-            flush=True,
-        )
+        if extract_err:
+            print(f"         → skipped (no eval): {extract_err[:120]}", flush=True)
+        else:
+            print(
+                f"         → {agg['earned_points']}/{agg['possible_points']} weighted pts ({pct_s})",
+                flush=True,
+            )
 
     index_path = work / "batch_index.json"
     index_path.write_text(

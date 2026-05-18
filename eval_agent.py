@@ -24,7 +24,47 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from dotenv import load_dotenv
+AIDE_DIR = Path(__file__).resolve().parent
+_AIDE_ENV = AIDE_DIR / ".env"
+
+
+def _bootstrap_env_from_dotenv(path: Path) -> None:
+    """Set ``os.environ`` keys from a simple ``KEY=value`` .env file (only if unset)."""
+    if not path.is_file():
+        return
+    try:
+        raw = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.lower().startswith("export "):
+            s = s[7:].lstrip()
+        if "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        os.environ[key] = val
+
+
+_bootstrap_env_from_dotenv(_AIDE_ENV)
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_a: object, **_k: object) -> bool:
+        return False
+
+
+load_dotenv(_AIDE_ENV, override=False)
+
 from openai import OpenAI
 
 from request import RubricLeafRef, flatten_rubric_leaves, rubric_skill_extract, rubric_skill_tree_construct
@@ -43,8 +83,6 @@ from video_metadata import (
     probe_video_metadata_for_tool,
     yt_dlp_available,
 )
-
-load_dotenv()
 
 
 def _sniff_rkt_skill_tree_json(path: Path) -> bool:

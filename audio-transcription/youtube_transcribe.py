@@ -16,23 +16,65 @@ clients may only expose thumbnails until you install a supported JS runtime (see
 EJS wiki: https://github.com/yt-dlp/yt-dlp/wiki/EJS ). The `android` client often still
 returns a combined audio+video format (e.g. itag 18); ffmpeg then strips audio to MP3.
 
-Requires: pip install yt-dlp openai python-dotenv
+Requires: pip install yt-dlp openai | optional: python-dotenv (richer .env parsing)
+
+Loads ``aide/.env`` (repo ``aide`` folder next to this script's parent) for ``OPENAI_API_KEY`` etc.,
+using a small built-in parser so credentials work even when ``python-dotenv`` is not installed.
 System: ffmpeg must be installed (yt-dlp uses it to extract MP3).
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import yt_dlp
-from dotenv import load_dotenv
-from openai import OpenAI
 from yt_dlp.utils import DownloadError
 
-load_dotenv()
+AIDE_DIR = Path(__file__).resolve().parent.parent
+_AIDE_ENV = AIDE_DIR / ".env"
+
+
+def _bootstrap_env_from_dotenv(path: Path) -> None:
+    """Set ``os.environ`` keys from a simple ``KEY=value`` .env file (only if unset)."""
+    if not path.is_file():
+        return
+    try:
+        raw = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.lower().startswith("export "):
+            s = s[7:].lstrip()
+        if "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        os.environ[key] = val
+
+
+_bootstrap_env_from_dotenv(_AIDE_ENV)
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_a: object, **_k: object) -> bool:
+        return False
+
+
+load_dotenv(_AIDE_ENV, override=False)
 
 # When the default YouTube client returns "not available" but the video plays in a browser,
 # trying other clients often fixes it (YouTube API differences, not login).
@@ -153,7 +195,7 @@ def download_audio_mp3(
     raise last_err
 
 
-def transcribe_file(client: OpenAI, audio_path: Path) -> str:
+def transcribe_file(client: Any, audio_path: Path) -> str:
     with open(audio_path, "rb") as f:
         transcription = client.audio.transcriptions.create(
             model="gpt-4o-transcribe",
@@ -221,6 +263,25 @@ def main() -> None:
     if args.cookies_from_browser:
         b = args.cookies_from_browser.strip()
         cookiesfrombrowser = (b, args.browser_profile) if args.browser_profile else (b,)
+
+    try:
+        from openai import OpenAI
+    except ImportError as e:
+        raise SystemExit(
+            "Missing dependency: openai (needed for transcription). "
+            "Install with: pip install openai"
+        ) from e
+
+    _bootstrap_env_from_dotenv(_AIDE_ENV)
+    load_dotenv(_AIDE_ENV, override=False)
+    if not (os.environ.get("OPENAI_API_KEY") or "").strip() and not (
+        os.environ.get("OPENAI_ADMIN_KEY") or ""
+    ).strip():
+        raise SystemExit(
+            "No OpenAI API key found. Set environment variable OPENAI_API_KEY, or add it to:\n"
+            f"  {_AIDE_ENV}\n"
+            "(This script loads that file automatically.)"
+        )
 
     client = OpenAI()
     tmp_root = Path(tempfile.mkdtemp(prefix="yt-transcribe-"))

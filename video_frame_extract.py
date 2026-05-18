@@ -12,11 +12,15 @@ Requires: pip install yt-dlp | System: ffmpeg on PATH
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
+import io
 import json
 import re
 import shutil
 import subprocess
+import sys
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
@@ -59,6 +63,7 @@ def _ydl_video_opts(
         "outtmpl": str(out_dir / "%(id)s.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
     }
     if cookiefile is not None:
         opts["cookiefile"] = str(cookiefile)
@@ -86,9 +91,13 @@ def _download_youtube_once(
         youtube_player_client=youtube_player_client,
     )
     label = youtube_player_client or "default"
-    print(f"yt-dlp: trying YouTube player_client={label!r}", flush=True)
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    print(f"yt-dlp: trying YouTube player_client={label!r}", file=sys.stderr, flush=True)
+    # yt-dlp may print [download] progress to sys.stdout despite quiet=; keep stdout clean
+    # for ``student_video_eval_pipeline`` which parses JSON from this process's stdout.
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
         if not isinstance(info, dict):
             raise RuntimeError("yt-dlp returned unexpected info type")
         vid = info.get("id")
@@ -386,17 +395,35 @@ def _main() -> None:
         safe = re.sub(r"[^\w.\-@]+", "_", label)[:120]
         wdir = args.out / safe
         wdir.mkdir(parents=True, exist_ok=True)
-        _, frames = preprocess_youtube_to_frames(
-            url,
-            wdir,
-            scene_threshold=args.scene_threshold,
-            min_gap_seconds=args.min_gap,
-            cookiefile=args.cookies,
-            cookiesfrombrowser=cookiesfrombrowser,
-            youtube_player_client=args.youtube_player_client,
-            youtube_player_fallback=not args.no_youtube_player_fallback,
-            keep_video=args.keep_video,
-        )
+        try:
+            _, frames = preprocess_youtube_to_frames(
+                url,
+                wdir,
+                scene_threshold=args.scene_threshold,
+                min_gap_seconds=args.min_gap,
+                cookiefile=args.cookies,
+                cookiesfrombrowser=cookiesfrombrowser,
+                youtube_player_client=args.youtube_player_client,
+                youtube_player_fallback=not args.no_youtube_player_fallback,
+                keep_video=args.keep_video,
+            )
+        except Exception as e:
+            if args.url:
+                traceback.print_exc()
+                raise SystemExit(1) from e
+            msg = f"{type(e).__name__}: {e}"
+            print(f"[extract] FAILED {label!r} :: {msg}", file=sys.stderr, flush=True)
+            summary.append(
+                {
+                    "label": label,
+                    "url": url,
+                    "work_dir": str(wdir.resolve()),
+                    "frame_count": 0,
+                    "frames": [],
+                    "error": msg,
+                }
+            )
+            continue
         summary.append(
             {
                 "label": label,
@@ -410,7 +437,7 @@ def _main() -> None:
             }
         )
 
-    print(json.dumps(summary, indent=2))
+    print(json.dumps(summary, indent=2), flush=True)
 
 
 if __name__ == "__main__":

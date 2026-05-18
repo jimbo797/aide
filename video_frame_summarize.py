@@ -7,8 +7,9 @@ spreadsheet/table content where legible.
 Images are sent as ``data:image/...;base64,...`` URIs (``image_url.url``), with
 ``detail: "high"`` so small UI text is easier to read.
 
-Requires: pip install openai python-dotenv pydantic
-Environment: ``OPENAI_API_KEY``; optional ``OPENAI_VIDEO_FRAME_MODEL`` (default ``gpt-4o``).
+Requires: pip install openai pydantic | optional: python-dotenv, pillow
+
+Environment: ``OPENAI_API_KEY`` (loaded from ``aide/.env`` when present); optional ``OPENAI_VIDEO_FRAME_MODEL`` (default ``gpt-4o``). Optional ``OPENAI_VIDEO_FRAME_MAX_TOKENS`` caps completion size (default ``16384``; set ``0`` to omit).
 
 Optional: ``pip install pillow`` and ``--max-long-edge`` to shrink very large JPEGs before upload.
 """
@@ -24,11 +25,49 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
-from dotenv import load_dotenv
-from openai import OpenAI
-from pydantic import BaseModel, Field
+AIDE_DIR = Path(__file__).resolve().parent
+_AIDE_ENV = AIDE_DIR / ".env"
 
-load_dotenv()
+
+def _bootstrap_env_from_dotenv(path: Path) -> None:
+    """Set ``os.environ`` keys from a simple ``KEY=value`` .env file (only if unset)."""
+    if not path.is_file():
+        return
+    try:
+        raw = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.lower().startswith("export "):
+            s = s[7:].lstrip()
+        if "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        os.environ[key] = val
+
+
+_bootstrap_env_from_dotenv(_AIDE_ENV)
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_a: object, **_k: object) -> bool:
+        return False
+
+
+load_dotenv(_AIDE_ENV, override=False)
+
+from openai import OpenAI
+from pydantic import BaseModel, Field, ValidationError
 
 MIME_BY_SUFFIX: dict[str, str] = {
     ".jpg": "image/jpeg",
@@ -164,6 +203,76 @@ def image_file_to_data_uri(path: Path, *, max_long_edge: int | None = None) -> s
     return f"data:{mime};base64,{b64}"
 
 
+def _vision_max_output_tokens() -> int | None:
+    raw = (os.environ.get("OPENAI_VIDEO_FRAME_MAX_TOKENS") or "16384").strip()
+    if not raw or raw == "0":
+        return None
+    try:
+        n = int(raw)
+        return n if n > 0 else None
+    except ValueError:
+        return 16384
+
+
+def _degraded_frame_annotation(reason: str, *, image_path: Path) -> FrameVisionAnnotation:
+    """Valid object when the model returns truncated or non-JSON output."""
+    safe = reason.replace("\n", " ").strip()
+    if len(safe) > 1200:
+        safe = safe[:1200] + "…"
+    return FrameVisionAnnotation(
+        scene_overview=(
+            f"Fallback annotation: vision output was invalid or truncated for `{image_path.name}`."
+        ),
+        shot_type="other",
+        verbatim_visible_text="",
+        illegible_or_uncertain=safe,
+    )
+
+
+def _vision_json_completion(
+    client: OpenAI,
+    *,
+    model: str,
+    data_uri: str,
+    user_text: str,
+) -> tuple[str, str | None]:
+    """Return (message_content, finish_reason_or_none)."""
+    max_out = _vision_max_output_tokens()
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_text},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": data_uri, "detail": "high"},
+                    },
+                ],
+            },
+        ],
+        "temperature": 0.2,
+    }
+    if max_out is not None:
+        kwargs["max_tokens"] = max_out
+    try:
+        resp = client.chat.completions.create(**kwargs)
+    except TypeError:
+        kwargs.pop("max_tokens", None)
+        if max_out is not None:
+            kwargs["max_completion_tokens"] = max_out
+        resp = client.chat.completions.create(**kwargs)
+    choice0 = resp.choices[0]
+    content = choice0.message.content
+    if not content:
+        raise RuntimeError("Empty model response")
+    fr = getattr(choice0, "finish_reason", None)
+    return content, fr
+
+
 def summarize_frame(
     client: OpenAI,
     *,
@@ -188,32 +297,47 @@ File name (for disambiguation only — do not invent content from it): `{image_p
 
 {USER_JSON_SCHEMA_HINT}
 
-Be as thorough as possible on verbatim text and spreadsheet/table cells."""
+Be as thorough as possible on verbatim text and spreadsheet/table cells. If the frame \
+contains a huge spreadsheet, prioritize headers, visible row/column labels, and a \
+representative sample of cells — **complete, valid JSON is more important than listing \
+every cell**, so keep each string field bounded and never truncate inside a JSON string."""
 
-    # json_schema + strict requires additionalProperties: false on all objects in schema;
-    # Pydantic v2 model_json_schema may need refinement — use json_object mode for robustness.
-    resp = client.chat.completions.create(
-        model=model,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_text},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": data_uri, "detail": "high"},
-                    },
-                ],
-            },
-        ],
-        temperature=0.2,
+    compact_suffix = (
+        "\n\nOutput a **single valid JSON object** with the same field names as above. "
+        "If the scene is text-heavy, cap each string field at roughly 3000 characters "
+        "(summarize or sample); never leave strings unclosed — finish the JSON object."
     )
-    content = resp.choices[0].message.content
-    if not content:
-        raise RuntimeError("Empty model response")
-    return FrameVisionAnnotation.model_validate_json(content)
+
+    content, finish_reason = _vision_json_completion(
+        client, model=model, data_uri=data_uri, user_text=user_text
+    )
+    if finish_reason == "length":
+        print(
+            f"[warn] {image_path.name}: completion stopped at max length; retrying compact…",
+            flush=True,
+        )
+        content, finish_reason = _vision_json_completion(
+            client, model=model, data_uri=data_uri, user_text=user_text + compact_suffix
+        )
+
+    try:
+        return FrameVisionAnnotation.model_validate_json(content)
+    except (ValidationError, json.JSONDecodeError, ValueError) as e1:
+        print(
+            f"[warn] {image_path.name}: JSON parse failed ({e1!s}); retrying compact…",
+            flush=True,
+        )
+        content2, _fr2 = _vision_json_completion(
+            client, model=model, data_uri=data_uri, user_text=user_text + compact_suffix
+        )
+        try:
+            return FrameVisionAnnotation.model_validate_json(content2)
+        except (ValidationError, json.JSONDecodeError, ValueError) as e2:
+            print(
+                f"[warn] {image_path.name}: compact retry failed ({e2!s}); using degraded annotation.",
+                flush=True,
+            )
+            return _degraded_frame_annotation(f"{e1!s} | retry: {e2!s}", image_path=image_path)
 
 
 @dataclass(frozen=True)
@@ -333,6 +457,17 @@ def main() -> None:
     if args.dry_run:
         print(json.dumps([{"label": L, "path": str(j.path), "time_seconds": j.time_seconds} for L, j in jobs], indent=2))
         return
+
+    _bootstrap_env_from_dotenv(_AIDE_ENV)
+    load_dotenv(_AIDE_ENV, override=False)
+    if not (os.environ.get("OPENAI_API_KEY") or "").strip() and not (
+        os.environ.get("OPENAI_ADMIN_KEY") or ""
+    ).strip():
+        raise SystemExit(
+            "No OpenAI API key found. Set OPENAI_API_KEY or add it to:\n"
+            f"  {_AIDE_ENV}\n"
+            "(This script loads that file automatically.)"
+        )
 
     client = OpenAI()
     results: list[dict[str, Any]] = []

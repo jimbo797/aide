@@ -7,10 +7,47 @@ from type import (
   LeafAssessmentBatch,
   LeafVerdict,
 )
-from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()
+_AIDE_ENV = Path(__file__).resolve().parent / ".env"
+
+
+def _bootstrap_env_from_dotenv(path: Path) -> None:
+    if not path.is_file():
+        return
+    try:
+        raw = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.lower().startswith("export "):
+            s = s[7:].lstrip()
+        if "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        os.environ[key] = val
+
+
+_bootstrap_env_from_dotenv(_AIDE_ENV)
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_a: object, **_k: object) -> bool:
+        return False
+
+
+load_dotenv(_AIDE_ENV, override=False)
 
 client = instructor.from_provider("openai/gpt-5-nano")
 
