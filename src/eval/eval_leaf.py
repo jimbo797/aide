@@ -19,6 +19,7 @@ from eval.eval_leaf_tools import (
     tool_schemas_for_context,
 )
 from rubric.rubric_types import RubricCriteria
+from util.openai import OpenAIClient
 
 AIDE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_PREPROCESS_DIR = AIDE_DIR / "preprocess-test"
@@ -290,9 +291,6 @@ def eval_leaf(
     3. Plan how to judge the criterion from the tool results.
     4. Output met | not_met | undetermined with evidence.
     """
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
 
     pdir = Path(preprocess_dir) if preprocess_dir is not None else DEFAULT_PREPROCESS_DIR
     if not pdir.is_absolute():
@@ -300,7 +298,7 @@ def eval_leaf(
 
     ctx = SubmissionContext.load(submission_alias, pdir)
     model_name = model or _default_model()
-    client = OpenAI()
+    client = OpenAIClient().client
 
     tool_plan = _plan_tools(client, model=model_name, leaf=leaf, ctx=ctx)
     tool_results = _execute_tool_plan(ctx, tool_plan)
