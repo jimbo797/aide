@@ -27,7 +27,8 @@ def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
     summary_path = preprocess_dir / alias / "frames_summary.json"
     annotate_frames(frames, summary_path)
 
-    # Finally, delete the video file
+    # Delete the video file
+    # TODO: Maybe keep it until eval for a student is complete
     video_path.unlink(missing_ok=True)
 
 
