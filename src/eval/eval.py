@@ -112,6 +112,7 @@ def eval_submission(
     rubric: Rubric,
     *,
     preprocess_dir: Path | str | None = None,
+    output_dir: Path | str | None = None,
     model: str | None = None,
 ) -> tuple[float, list[dict[str, Any]]]:
     """
@@ -149,5 +150,11 @@ def eval_submission(
                 "category_points": category_points,
             }
         )
+
+    if output_dir:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with open(output_dir / f"{submission_alias}.json", "w") as f:
+            json.dump(final_results, f, indent=2)
 
     return final_score, final_results
