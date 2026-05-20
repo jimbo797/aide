@@ -10,8 +10,8 @@ from typing import Any
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from eval.eval_leaf import _default_model, _structured_completion, eval_leaf
-from rubric.rubric_types import Rubric, RubricCategory
+from src.eval.eval_leaf import _default_model, _structured_completion, eval_leaf
+from src.rubric.rubric_types import Rubric, RubricCategory
 
 
 class CategoryAggregation(BaseModel):
@@ -126,13 +126,14 @@ def eval_submission(
 
     for category in rubric.categories:
         category_results: list[dict[str, Any]] = []
-        for leaf in category.criteria:
+        for i, leaf in enumerate(category.criteria):
             result = eval_leaf(
                 leaf,
                 submission_alias,
                 preprocess_dir=preprocess_dir,
                 model=model,
             )
+            result["id"] = i
             category_results.append(result)
 
         aggregation = aggregate_category_results(

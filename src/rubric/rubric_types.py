@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 # Is decided whether it is met or not met by the eval agent
 class RubricCriteria(BaseModel):
-    id: int
+    # id: int
     description: str
 
 # Given a score

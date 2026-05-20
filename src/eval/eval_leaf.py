@@ -10,7 +10,7 @@ from typing import Any, Literal
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from eval.eval_leaf_tools import (
+from src.eval.eval_leaf_tools import (
     SubmissionContext,
     TOOL_NAMES,
     ToolName,
@@ -18,8 +18,9 @@ from eval.eval_leaf_tools import (
     dispatch_tool,
     tool_schemas_for_context,
 )
-from rubric.rubric_types import RubricCriteria
-from util.openai import OpenAIClient
+from src.rubric.rubric_types import RubricCriteria
+from src.util.openai import OpenAIClient
+from src.util import log
 
 AIDE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_PREPROCESS_DIR = AIDE_DIR / "preprocess-test"
@@ -156,7 +157,7 @@ def _plan_tools(
         {
             "role": "user",
             "content": (
-                f"Criterion (leaf id {leaf.id}):\n{leaf.description}\n\n"
+                f"Criterion:\n{leaf.description}\n\n"
                 f"Submission alias: {ctx.alias}\n"
                 f"Preprocess directory: {ctx.preprocess_dir}\n\n"
                 f"Available tools:\n{tool_list}\n\n"
@@ -300,7 +301,10 @@ def eval_leaf(
     model_name = model or _default_model()
     client = OpenAIClient().client
 
+    # log(submission_alias, "Planning tools")
     tool_plan = _plan_tools(client, model=model_name, leaf=leaf, ctx=ctx)
+
+    # log(submission_alias, "Executing tools")
     tool_results = _execute_tool_plan(ctx, tool_plan)
 
     if not available_tools(ctx):
@@ -317,6 +321,7 @@ def eval_leaf(
             reasoning="Missing preprocess artifacts for this submission alias.",
         )
     else:
+        # log(submission_alias, "Planning evaluation")
         eval_plan = _plan_evaluation(
             client,
             model=model_name,
@@ -324,6 +329,7 @@ def eval_leaf(
             tool_plan=tool_plan,
             tool_results=tool_results,
         )
+        # log(submission_alias, "Evaluating")
         verdict = _determine_verdict(
             client,
             model=model_name,
@@ -333,7 +339,7 @@ def eval_leaf(
         )
 
     return {
-        "leaf_id": leaf.id,
+        # "leaf_id": leaf.id,
         "criterion": leaf.description,
         "submission_alias": submission_alias,
         "preprocess_dir": str(pdir),
