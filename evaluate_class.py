@@ -42,7 +42,8 @@ if __name__ == "__main__":
     rubric = Rubric.model_validate_json(json_data)
 
     evaluate_class(
-        assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list-short.csv"), 
+        # assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list-short.csv"), 
+        assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list.csv"), 
         rubric=rubric, 
         preprocess_dir=Path("out/preprocess"), 
         output_dir=Path("out/results"),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -11,7 +12,9 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from src.eval.eval_leaf import _default_model, _structured_completion, eval_leaf
-from src.rubric.rubric_types import Rubric, RubricCategory
+from src.rubric.rubric_types import Rubric, RubricCategory, RubricCriteria
+
+DEFAULT_MAX_LEAF_CONCURRENCY = 4
 
 
 class CategoryAggregation(BaseModel):
@@ -107,6 +110,40 @@ def aggregate_category_results(
     }
 
 
+async def _eval_leaves_concurrent(
+    submission_alias: str,
+    rubric: Rubric,
+    *,
+    preprocess_dir: Path | str | None,
+    model: str | None,
+    max_leaf_concurrency: int,
+) -> list[tuple[int, int, dict[str, Any]]]:
+    """Run all leaf evals concurrently; returns (category_index, leaf_index, result)."""
+    sem = asyncio.Semaphore(max(1, max_leaf_concurrency))
+
+    async def run_leaf(cat_i: int, leaf_i: int, leaf: RubricCriteria) -> tuple[int, int, dict[str, Any]]:
+        async with sem:
+            result = await asyncio.to_thread(
+                eval_leaf,
+                leaf,
+                submission_alias,
+                preprocess_dir=preprocess_dir,
+                model=model,
+            )
+            result["id"] = leaf_i
+            return cat_i, leaf_i, result
+
+    return list(
+        await asyncio.gather(
+            *[
+                run_leaf(cat_i, leaf_i, leaf)
+                for cat_i, category in enumerate(rubric.categories)
+                for leaf_i, leaf in enumerate(category.criteria)
+            ]
+        )
+    )
+
+
 def eval_submission(
     submission_alias: str,
     rubric: Rubric,
@@ -114,28 +151,39 @@ def eval_submission(
     preprocess_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
     model: str | None = None,
+    max_leaf_concurrency: int = DEFAULT_MAX_LEAF_CONCURRENCY,
 ) -> tuple[float, list[dict[str, Any]]]:
     """
     Evaluate every leaf, aggregate each category via OpenAI, and return total score.
 
+    Leaf evaluations run concurrently via ``asyncio.gather`` (bounded by
+    ``max_leaf_concurrency``). Category aggregation still runs sequentially after
+    all leaves in that category finish.
+
     Total score assumes category ``weight`` values are percentage points (e.g. 25 = 25%)
     and each category ``score`` is in [0, 1].
     """
+    leaf_rows = asyncio.run(
+        _eval_leaves_concurrent(
+            submission_alias,
+            rubric,
+            preprocess_dir=preprocess_dir,
+            model=model,
+            max_leaf_concurrency=max_leaf_concurrency,
+        )
+    )
+
+    by_category: dict[int, list[tuple[int, dict[str, Any]]]] = {}
+    for cat_i, leaf_i, result in leaf_rows:
+        by_category.setdefault(cat_i, []).append((leaf_i, result))
+
     final_score = 0.0
     final_results: list[dict[str, Any]] = []
 
-    for category in rubric.categories:
-        category_results: list[dict[str, Any]] = []
-        for i, leaf in enumerate(category.criteria):
-            result = eval_leaf(
-                leaf,
-                submission_alias,
-                preprocess_dir=preprocess_dir,
-                model=model,
-            )
-            result["id"] = i
-            category_results.append(result)
-
+    for cat_i, category in enumerate(rubric.categories):
+        category_results = [
+            result for _, result in sorted(by_category.get(cat_i, []), key=lambda x: x[0])
+        ]
         aggregation = aggregate_category_results(
             category_results, category, model=model
         )

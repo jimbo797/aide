@@ -16,6 +16,7 @@ Optional: ``pip install pillow`` and ``--max-long-edge`` to shrink very large JP
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
@@ -38,6 +39,7 @@ MIME_BY_SUFFIX: dict[str, str] = {
 }
 
 DEFAULT_MODEL = os.environ.get("OPENAI_VIDEO_FRAME_MODEL", "gpt-4o")
+DEFAULT_MAX_FRAME_CONCURRENCY = 4
 
 SYSTEM_PROMPT = """You are an expert technical analyst documenting still frames from student \
 submission videos (tutorials, screen recordings, webcam segments).
@@ -301,21 +303,53 @@ every cell**, so keep each string field bounded and never truncate inside a JSON
             return _degraded_frame_annotation(f"{e1!s} | retry: {e2!s}", image_path=image_path)
 
 
+async def _annotate_frames_concurrent(
+    frames: list[ExtractedFrame],
+    *,
+    model: str,
+    max_long_edge: int | None,
+    max_frame_concurrency: int,
+) -> list[dict[str, Any]]:
+    sem = asyncio.Semaphore(max(1, max_frame_concurrency))
+
+    async def run_one(frame: ExtractedFrame) -> dict[str, Any]:
+        async with sem:
+            annotation = await asyncio.to_thread(
+                annotate_frame,
+                frame.path,
+                frame.time_seconds,
+                model,
+                max_long_edge,
+            )
+            return {
+                "frame_path": str(frame.path.resolve()),
+                "time_seconds": frame.time_seconds,
+                "annotation": annotation.model_dump(),
+            }
+
+    return list(await asyncio.gather(*[run_one(frame) for frame in frames]))
+
+
 def annotate_frames(
     frames: list[ExtractedFrame],
     summary_path: Path,
-    ) -> Path:
+    *,
+    model: str = DEFAULT_MODEL,
+    max_long_edge: int | None = 1280,
+    max_frame_concurrency: int = DEFAULT_MAX_FRAME_CONCURRENCY,
+) -> Path:
     """Summarize each frame and write a JSON array (same shape as ``video_frame_summarize.py``)."""
-    results: list[dict[str, Any]] = []
-    for frame in frames:
-        annotation = annotate_frame(frame.path, frame.time_seconds, model=DEFAULT_MODEL, max_long_edge=1280)
-        results.append({
-            "frame_path": str(frame.path.resolve()),
-            "time_seconds": frame.time_seconds,
-            # "model": DEFAULT_MODEL,
-            "annotation": annotation.model_dump(),
-        })
+    results = asyncio.run(
+        _annotate_frames_concurrent(
+            frames,
+            model=model,
+            max_long_edge=max_long_edge,
+            max_frame_concurrency=max_frame_concurrency,
+        )
+    )
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    return summary_path
 
 
 if __name__ == "__main__":
