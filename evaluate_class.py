@@ -14,7 +14,9 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
     df = pd.read_csv(assigment_list_csv_path)
 
     class_results = []
+    times_taken = []
     for index, row in df.iterrows():
+        start_time = datetime.now()
         url = row["link"]
         alias = row["email"].split("@")[0]
 
@@ -32,13 +34,17 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
             writer.writerow(["alias", "score"])
             for alias, score in class_results:
                 writer.writerow([alias, score])
-
-        log(alias, "Finished")
+        
+        end_time = datetime.now()
+        delta_time = end_time - start_time
+        times_taken.append(delta_time)
+        log(alias, "Finished. Time taken: {delta_time}")
+    
+    print(f"Finished evaluating class")
+    print(f"Total time: {sum(times_taken)}")
+    print(f"Average time: {sum(times_taken) / len(times_taken)}")
 
 if __name__ == "__main__":
-    start_time = datetime.now()
-    print(f"Start time: {start_time.time()}")
-
     json_data = Path("rubrics/gsu-sumprod-manual.json").read_text()
     rubric = Rubric.model_validate_json(json_data)
 
@@ -51,8 +57,5 @@ if __name__ == "__main__":
         model="gpt-5.5"
         )
 
-    end_time = datetime.now()
-    print(f"End time: {end_time.time()}")
-    print(f"Total time: {end_time - start_time}")
 
 
