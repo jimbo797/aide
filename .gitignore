@@ -3,8 +3,6 @@
 .DS_Store
 __pycache__/
 
-rubrics/*.json
-
 out/
 
 student-responses/

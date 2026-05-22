@@ -1,0 +1,194 @@
+{
+    "categories": [
+        {   
+            "description": "Video Length",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "Video length is approximately 5 minutes and does not exceed 6 minutes."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. If the criteria is not met, 0 points are awarded."
+        },
+        { 
+            "description": "Audio Narration",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Audio narration is provided."
+                },
+                {
+                    "description": "Audio narration is clear and audible."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. If narration is provided but not clear or audible, half points are awarded. If narration is not provided, 0 points are awarded."
+        },
+        {
+            "description": "Video Quality",
+            "weight": 20.0,
+            "criteria": [
+                {
+                    "description": "Video quality is good."
+                },
+                {
+                    "description": "Video quality is good (greater than 480p)."
+                },
+                {
+                    "description": "Screen resolution is sufficient for readability of data."
+                },
+                {
+                    "description": "Does not use a hand held camera (cell phone) to record the screen."
+                },
+                {
+                    "description": "Webcam image does not block an important part of the demonstration."
+                }  
+            ],
+            "scoring_instructions": "If all the criteria are met, full points are awarded. If the video quality is not good, subtract 3/20. If the screen resolution is not sufficient, subtract 5/20. If a hand held camera (cell phone) is used, subtract 10/20. If the webcam image blocks an important part of the demonstration, subtract 2/20. Minimum score is 0."
+        },
+        {
+            "description": "Name Included",
+            "weight": 0.0,
+            "criteria": [
+                {
+                    "description": "Student's name is included in the video."
+                }
+            ],
+            "scoring_instructions": "Always award 0 points for this criterion."
+        },
+        {
+            "description": "Selfie Video",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "Full-screen selfie video is included. Note that webcam as part of the video does not count. This should demonstrate stitching two videos together in post-production editing."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. If the criteria is not met, 0 points are awarded."
+        },
+        {
+            "description": "Post-production Text",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "Include post-production text. This can either be instructions as part of the teaching activity, or closing credits, or an introduction title, or a joke, or something else that is obvious PP-editing."
+                }
+            ],
+            "scoring_instructions": "Award full points if post-production text is included. If it is not included, award 0 points."
+        },
+        {
+            "description": "Submission Artifacts",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "Include the YouTube URL in the original submission comment."
+                },
+                {
+                    "description": "Include the Project Excel file in the original submission."
+                },
+                {
+                    "description": "Set the YouTube URL to UNLISTED."
+                }
+            ],
+            "scoring_instructions": "Award full points if all the criteria are met. If any of the criteria are not met, award 0 points."
+        },
+        {
+            "description": "Standout Element",
+            "weight": 0.0,
+            "criteria": [
+                {
+                    "description": "Video has a distinctive standout element."
+                }
+            ],
+            "scoring_instructions": "Always award 0 points for this criterion."
+        },
+        {
+            "description": "A",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Build a math formula to calculate the Individual Regular Pay into cell H2 by calculating the product of Regular Pay and Regular Hours for the employee on row 2, Week 1. Demonstrate using the fill handle to bulk copy this math formula down through row 25. Build a similar math formula in column I to calculate Individual OT Pay for all rows 2 through 25. The result should calculate values in the full range H2:I25. "
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If the criteria is not met, award 0 points."
+        },
+        {
+            "description": "B",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Sort the table of data (A1:F25) by Week smallest-to-largest, with a simultaneous secondary sort level on OT Hours largest-to-smallest, without moving the column headers. Do not include columns G:K in this sort."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If the criteria is not met, award 0 points."
+        },
+        {
+            "description": "C",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Calculate the Week 1 Regular Payroll for the entire week 1 in cell J2 using the SUMPRODUCT() function using data from the original table (columns A:F, do not use columns H:I for this task). Calculate the Week 1 OT Payroll for the entire week 1 in cell K2 using the SUMPRODUCT() function using data from the original table (columns A:F, do not use columns H:I for this task). Replicate these calculations for other weeks 2, 3, 4, 5, 6, 7 and 8 into suitable rows in columns J and K."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If the criteria is not met, award 0 points."
+        },
+        {
+            "description": "D",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Add a filter for Column J. Set the column J filter to omit Blanks (if prior steps were done correctly this will reduce the rows to 8, one row for each week). Build a stacked column chart showing the weekly payroll (as calculated in columns J and K) with one stacked column for each week 1-8. The result should have OT pay stacked on top of Regular pay. Name the Chart “Payroll by Week”."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If the criteria is not met, award 0 points."
+        },
+        {
+            "description": "FunctionPurpose",
+            "weight": 4.0,
+            "criteria": [
+                {
+                    "description": "The purpose of the function/capability demonstrated, what is its purpose, when and why would it be used are described by the student."
+                },
+                {
+                    "description": "Alternate uses of the function/capability demonstrated are mentioned by the student."
+                }
+            ],
+            "scoring_instructions": "If the purpose of the function/capability demonstrated, what is its purpose, when and why would it be used are described by the student, award full points. If the alternate uses of the function/capability demonstrated are mentioned by the student, award half points. If neither are described, award 0 points."
+        },
+        {
+            "description": "Data Description",
+            "weight": 2.0,
+            "criteria": [
+                {
+                    "description": "The data used is described by the student."
+                }
+            ],
+            "scoring_instructions": "If the data used is described by the student, award full points. If the data used is not described, award 0 points."
+        },
+        {
+            "description": "Function Help",
+            "weight": 4.0,
+            "criteria": [
+                {
+                    "description": "Student gives sophisticated advice or a demonstration on finding help for the function/capability."
+                },
+                {
+                    "description": "URLs or references to help resources are provided by the student."
+                },
+                {
+                    "description": "Student recommends searching for help regarding the function/capability on online search engines, Google, or Microsoft."
+                }
+            ],
+            "scoring_instructions": "If the student gives sophisticated advice or a demonstration on finding help for the function/capability, award full points. If the URLs or references to help resources are provided by the student, award half points. If the student recommends searching for help regarding the function/capability on online search engines, Google, or Microsoft, award 1/4 points."
+        },
+        {
+            "description": "Joke",
+            "weight": 0.0,
+            "criteria": [
+                {
+                    "description": "The video concludes with a joke or humorous element."
+                }
+            ],
+            "scoring_instructions": "Always award 0 points for this criterion."
+        }
+    ]
+}

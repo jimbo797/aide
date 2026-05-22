@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "source_format": "txt",
+  "categories": [
+    {
+      "name": "The length of the  video should be approximately 5 minutes (no more than 6 mi...",
+      "weight": 5.0,
+      "body": "The length of the  video should be approximately 5 minutes (no more than 6 minutes).\n(deduct 1 point for 6min30sec, then addl point for each additional 60 seconds, up to 5 point max penalty)"
+    },
+    {
+      "name": "Your video should audio naration of the tasks and actions you are demonstrati...",
+      "weight": 10.0,
+      "body": "Your video should audio naration of the tasks and actions you are demonstrating (10 points)\nVery low volume or significant noise intereference for naration (-5 points)"
+    },
+    {
+      "name": "Your video should include moving images that demonstrate the skills you are t...",
+      "weight": 20.0,
+      "body": "Your video should include moving images that demonstrate the skills you are trying to teach. (20 points)\n< 480p  (-3 points)  or low quality screen resolution does not allow reading data (-5 points)\nhand held camera (cell phone) recording of screen (-10 points)\nWebcam image blocks an important part of the demonstration (-2 points)"
+    },
+    {
+      "name": "Notify instructor if name cannot be found. These should be original videos cr...",
+      "weight": 0.0,
+      "body": "Notify instructor if name cannot be found. These should be original videos creations for this semester."
+    },
+    {
+      "name": "Student should include their selfie video (5 points).",
+      "weight": 5.0,
+      "body": "Student should include their selfie video (5 points).\nNote webcam as part of the video does not count. This does not demonstrate stitching two videos together in post-production editing."
+    },
+    {
+      "name": "Include post-production text. This can either be instructions as part of the ...",
+      "weight": 5.0,
+      "body": "Include post-production text. This can either be instructions as part of the teaching activity, or closing credits, or an introduction title, or a joke, or something else that is obvious PP-editing.  (5 points)"
+    },
+    {
+      "name": "Missing URL in original submission comment",
+      "weight": 5.0,
+      "body": "Missing URL in original submission comment\nMissing Excel file in original submission\nURL not set to UNLISTED\n(5 points for any or all at time of due date)"
+    },
+    {
+      "name": "This video has something that makes it stand out as well above averagre(+1 to...",
+      "weight": 0.0,
+      "body": "This video has something that makes it stand out as well above averagre(+1 to +3 points, provide description for instructor)"
+    },
+    {
+      "name": "Part a: Build a math formula to calculate the Individual Regular Pay into cel...",
+      "weight": 10.0,
+      "body": "Part a: Build a math formula to calculate the Individual Regular Pay into cell H2 by calculating the product of Regular Pay and Regular Hours for the employee on row 2, Week 1. Demonstrate using the fill handle to bulk copy this math formula down through row 25. Build a similar math formula in column I to calculate Individual OT Pay for all rows 2 through 25. The result should calculate values in the full range H2:I25."
+    },
+    {
+      "name": "Part b: Sort the table of data (A1:F25) by Week smallest-to-largest, with a s...",
+      "weight": 10.0,
+      "body": "Part b: Sort the table of data (A1:F25) by Week smallest-to-largest, with a simultaneous secondary sort level on OT Hours largest-to-smallest, without moving the column headers. Do not include columns G:K in this sort."
+    },
+    {
+      "name": "Part c: Calculate the Week 1 Regular Payroll for the entire week 1 in cell J2...",
+      "weight": 10.0,
+      "body": "Part c: Calculate the Week 1 Regular Payroll for the entire week 1 in cell J2 using the SUMPRODUCT() function using data from the original table (columns A:F, do not use columns H:I for this task). Calculate the Week 1 OT Payroll for the entire week 1 in cell K2 using the SUMPRODUCT() function using data from the original table (columns A:F, do not use columns H:I for this task). Replicate these calculations for other weeks 2, 3, 4, 5, 6, 7 and 8 into suitable rows in columns J and K."
+    },
+    {
+      "name": "Part d: Add a filter for Column J. Set the column J filter to omit Blanks (if...",
+      "weight": 10.0,
+      "body": "Part d: Add a filter for Column J. Set the column J filter to omit Blanks (if prior steps were done correctly this will reduce the rows to 8, one row for each week). Build a stacked column chart showing the weekly payroll (as calculated in columns J and K) with one stacked column for each week 1-8. The result should have OT pay stacked on top of Regular pay. Name the Chart “Payroll by Week”."
+    },
+    {
+      "name": "This video would be better if you described the purpose of the function/capab...",
+      "weight": 4.0,
+      "body": "This video would be better if you described the purpose of the function/capability demonstrated, what is its purpose, when and why would it be used. (-4 points)\nMentioning alternate uses is similar to discussing the purpose, but this this is a shortcut and should get fewer points (2 points)"
+    },
+    {
+      "name": "This video would be better if it provided more description of the data used w...",
+      "weight": 2.0,
+      "body": "This video would be better if it provided more description of the data used when introducing the task. (-2 points)"
+    },
+    {
+      "name": "This video would be better by showing how to find help for for the target cap...",
+      "weight": 4.0,
+      "body": "This video would be better by showing how to find help for for the target capability/function. (-4 points)\nListing URLS is worth 2 points\nVerbally telling viewers to search (google or microsoft) is worth 1 point"
+    },
+    {
+      "name": "The video should conclude with a joke (it should be at the end of the video t...",
+      "weight": 0.0,
+      "body": "The video should conclude with a joke (it should be at the end of the video to be easy to find… if you find it somewhere else, then give credit).\nAny obvious attempt at humor is acceptable. The attempt does not have to be successful (bad jokes are OK)."
+    }
+  ]
+}

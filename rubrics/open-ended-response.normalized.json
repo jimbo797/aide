@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "source_format": "csv",
+  "categories": [
+    {
+      "name": "Content Quality & Technical Depth",
+      "weight": 0.2,
+      "body": "Demonstrates comprehensive and nuanced understanding of AI/DS concepts; makes sophisticated connections between ideas"
+    },
+    {
+      "name": "Technical Accuracy",
+      "weight": 0.2,
+      "body": "All technical information is accurate and precise; uses terminology correctly and appropriately"
+    },
+    {
+      "name": "Reasoning & Justification",
+      "weight": 0.2,
+      "body": "Provides clear, logical reasoning with strong evidence or examples; justifications are compelling and well-supported"
+    },
+    {
+      "name": "Problem-Solving Approach",
+      "weight": 0.2,
+      "body": "Applies an effective, systematic approach; considers multiple perspectives or solutions; demonstrates critical thinking"
+    },
+    {
+      "name": "Communication & Clarity",
+      "weight": 0.2,
+      "body": "Response is exceptionally clear, well-organized, and easy to follow; ideas flow logically"
+    }
+  ]
+}

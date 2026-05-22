@@ -1,0 +1,267 @@
+{
+  "type": "root",
+  "rows": [
+    {
+      "type": "rubric line",
+      "description": "The length of the  video should be approximately 5 minutes (no more than 6 mi...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Video length is approximately 5 minutes and does not exceed 6 minutes.",
+          "weight": 5.0
+        }
+      ],
+      "weight": 5.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Your video should audio naration of the tasks and actions you are demonstrati...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Provide audio narration of the tasks.",
+          "weight": 6.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Narration is clearly audible with minimal background noise.",
+          "weight": 4.0
+        }
+      ],
+      "weight": 10.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Your video should include moving images that demonstrate the skills you are t...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Video includes moving images that demonstrate the skills being taught.",
+          "weight": 12.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Screen content is clear and readable with at least 480p resolution.",
+          "weight": 4.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Screen recording is captured with a stable method, not a handheld camera recording of the screen.",
+          "weight": 2.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Webcam does not obscure important parts of the demonstration.",
+          "weight": 2.0
+        }
+      ],
+      "weight": 20.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Notify instructor if name cannot be found. These should be original videos cr...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Notify instructor if name cannot be found.",
+          "weight": 0.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Video is an original creation for this semester.",
+          "weight": 0.0
+        }
+      ],
+      "weight": 0.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Student should include their selfie video (5 points).",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Selfie video is included in the submission.",
+          "weight": 5.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Webcam usage is not counted toward the selfie video requirement.",
+          "weight": 0.0
+        }
+      ],
+      "weight": 5.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Include post-production text. This can either be instructions as part of the ...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Include post-production text in the video.",
+          "weight": 5.0
+        }
+      ],
+      "weight": 5.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Missing URL in original submission comment",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Submission comment includes a URL.",
+          "weight": 5.0
+        }
+      ],
+      "weight": 5.0
+    },
+    {
+      "type": "rubric line",
+      "description": "This video has something that makes it stand out as well above averagre(+1 to...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Video has a distinctive standout element.",
+          "weight": 0.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Describe the standout element for the instructor.",
+          "weight": 0.0
+        }
+      ],
+      "weight": 0.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Part a: Build a math formula to calculate the Individual Regular Pay into cel...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "In Week 1, calculate the product of Regular Pay and Regular Hours for the employee in row 2, Week 1.",
+          "weight": 4.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Demonstrate using the fill handle to copy the formula down through row 25.",
+          "weight": 2.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Create a formula in column I to calculate Individual OT Pay for all rows 2 through 25.",
+          "weight": 2.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Ensure the results span the full range H2:I25.",
+          "weight": 2.0
+        }
+      ],
+      "weight": 10.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Part b: Sort the table of data (A1:F25) by Week smallest-to-largest, with a s...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Sort data by Week smallest-to-largest with OT Hours largest-to-smallest, excluding G:K and without moving the headers.",
+          "weight": 10.0
+        }
+      ],
+      "weight": 10.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Part c: Calculate the Week 1 Regular Payroll for the entire week 1 in cell J2...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Use SUMPRODUCT to calculate Week 1 Regular Payroll in J2 from data in A:F (excluding H:I).",
+          "weight": 5.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Use SUMPRODUCT to calculate Week 1 OT Payroll in K2 from data in A:F (excluding H:I).",
+          "weight": 5.0
+        }
+      ],
+      "weight": 10.0
+    },
+    {
+      "type": "rubric line",
+      "description": "Part d: Add a filter for Column J. Set the column J filter to omit Blanks (if...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Add a filter to Column J to omit blanks.",
+          "weight": 10.0
+        }
+      ],
+      "weight": 10.0
+    },
+    {
+      "type": "rubric line",
+      "description": "This video would be better if you described the purpose of the function/capab...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Describe the purpose and typical use cases of the demonstrated function or capability.",
+          "weight": 3.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Mention alternative uses of the function or capability.",
+          "weight": 1.0
+        }
+      ],
+      "weight": 4.0
+    },
+    {
+      "type": "rubric line",
+      "description": "This video would be better if it provided more description of the data used w...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Provide more description of the data used when introducing the task.",
+          "weight": 2.0
+        }
+      ],
+      "weight": 2.0
+    },
+    {
+      "type": "rubric line",
+      "description": "This video would be better by showing how to find help for for the target cap...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Show how to find help for the target capability/function.",
+          "weight": 2.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Include URLs or references to help resources.",
+          "weight": 1.0
+        },
+        {
+          "type": "simple rule",
+          "rule": "Provide verbal guidance to search for help (e.g., online search).",
+          "weight": 1.0
+        }
+      ],
+      "weight": 4.0
+    },
+    {
+      "type": "rubric line",
+      "description": "The video should conclude with a joke (it should be at the end of the video t...",
+      "children": [
+        {
+          "type": "simple rule",
+          "rule": "Conclude the video with a joke or humorous element.",
+          "weight": 0.0
+        }
+      ],
+      "weight": 0.0
+    }
+  ]
+}
