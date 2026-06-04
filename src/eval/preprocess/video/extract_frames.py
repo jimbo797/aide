@@ -69,7 +69,7 @@ def extact_important_frames(
 
     vf_parts = [f"select='{select_expr}'", "showinfo"]
     if scale_max_width and scale_max_width > 0:
-        vf_parts.append(f"scale={scale_max_width}:-1")
+        vf_parts.append(f"scale={scale_max_width}:-1:flags=lanczos")
     vf = ",".join(vf_parts)
 
     cmd = [
@@ -83,6 +83,8 @@ def extact_important_frames(
         vf,
         "-vsync",
         "vfr",
+        "-q:v",
+        "2",
         pattern,
     ]
     proc = subprocess.run(

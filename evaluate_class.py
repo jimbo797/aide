@@ -25,7 +25,7 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
 
             log(alias, "Preprocessing")
             preprocess_video(url, alias, preprocess_dir)
-
+            
             log(alias, "Evaluating")
             score, results = eval_submission(alias, rubric, preprocess_dir=preprocess_dir, output_dir=output_dir, model=model)
             class_results.append((alias, score))
@@ -53,8 +53,7 @@ if __name__ == "__main__":
     rubric = Rubric.model_validate_json(json_data)
 
     evaluate_class(
-        # assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list-short.csv"), 
-        assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list-checkpoint.csv"), 
+        assigment_list_csv_path=Path("student-responses/gsu-student-sumprod-video-list-short.csv"), 
         rubric=rubric, 
         preprocess_dir=Path("out/preprocess"), 
         output_dir=Path("out/results"),

@@ -66,5 +66,5 @@ def render_skill_tree(root: RKTRoot) -> str:
 
 if __name__ == "__main__":
     dir = os.path.dirname(os.path.abspath(__file__))
-    skill_tree = load_skill_tree(os.path.join(dir, "rubrics", "gsu-sumprod.json"))
+    skill_tree = load_skill_tree(os.path.join(dir, "rubrics", "gsu-sumprod-manual.json"))
     print(render_skill_tree(skill_tree))

@@ -4,5 +4,6 @@
 __pycache__/
 
 out/
+old-runs/
 
 student-responses/
