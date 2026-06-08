@@ -26,15 +26,15 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
             log(alias, "Preprocessing")
             preprocess_video(url, alias, preprocess_dir)
             
-            log(alias, "Evaluating")
-            score, results = eval_submission(alias, rubric, preprocess_dir=preprocess_dir, output_dir=output_dir, model=model)
-            class_results.append((alias, score))
+            # log(alias, "Evaluating")
+            # score, results = eval_submission(alias, rubric, preprocess_dir=preprocess_dir, output_dir=output_dir, model=model)
+            # class_results.append((alias, score))
             
-            with open(output_dir / f"class_results.csv", "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(["alias", "score"])
-                for alias, score in class_results:
-                    writer.writerow([alias, score])
+            # with open(output_dir / f"class_results.csv", "w") as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(["alias", "score"])
+            #     for alias, score in class_results:
+            #         writer.writerow([alias, score])
         except Exception as e:
             log(alias, f"Error: {e}")
             continue
