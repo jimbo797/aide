@@ -1,0 +1,198 @@
+{
+    "categories": [
+        {   
+            "description": "Video Length",
+            "weight": 3.0,
+            "criteria": [
+                {
+                    "description": "Video length is approximately 3 minutes and does not exceed 4 minutes."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. Deduct 1/3 for 4min10sec, then additionally 1/3 point for each additional 30 seconds."
+        },
+        { 
+            "description": "Audio Narration",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Audio narration of the tasks and actions being demonstrated are provided."
+                },
+                {
+                    "description": "Audio narration is clear and audible."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. If narration is provided but not clear or audible, half points are awarded. If narration is not provided, 0 points are awarded."
+        },
+        {
+            "description": "Navigation",
+            "weight": 20.0,
+            "criteria": [
+                {
+                    "description": "Video should include moving images that demonstrate the skills the student is trying to teach."
+                },
+                {
+                    "description": "Video quality is good (greater than 480p)."
+                },
+                {
+                    "description": "Screen resolution is sufficient for readability of data."
+                },
+                {
+                    "description": "Does not use a hand held camera (cell phone) to record the screen."
+                },
+                {
+                    "description": "Webcam image does not block an important part of the demonstration."
+                }  
+            ],
+            "scoring_instructions": "If all the criteria are met, full points are awarded. If there are no moving images, award 0. If the video quality is not good, subtract 3/20. If the screen resolution is not sufficient, subtract 5/20. If a hand held camera (cell phone) is used to record the computer screen, subtract 10/20. If the webcam image blocks an important part of the demonstration, subtract 2/20. Minimum score is 0."
+        },
+        {
+            "description": "Name Included",
+            "weight": 0.0,
+            "criteria": [
+                {
+                    "description": "Student's name is included in the video."
+                }
+            ],
+            "scoring_instructions": "Always award 0 points for this criterion."
+        },
+        {
+            "description": "Selfie Video",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "A selfie video in portrait mode is included. Note that webcam as part of the video does not count. This should demonstrate stitching two videos together in post-production editing."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, full points are awarded. If the criteria is not met, 0 points are awarded."
+        },
+        {
+            "description": "Submission Artifacts",
+            "weight": 5.0,
+            "criteria": [
+                {
+                    "description": "Include the YouTube URL in the original submission comment."
+                },
+                {
+                    "description": "Include the Project Excel file in the original submission."
+                },
+                {
+                    "description": "Set the YouTube URL to UNLISTED."
+                }
+            ],
+            "scoring_instructions": "Award full points if all the criteria are met. If any of the criteria are not met, award 0 points."
+        },
+        {
+            "description": "Standout Element",
+            "weight": 0.0,
+            "criteria": [
+                {
+                    "description": "Video has a distinctive standout element that makes it stand out as well above average."
+                }
+            ],
+            "scoring_instructions": "Always award 0 points for this criterion."
+        },
+        {
+            "description": "A",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Build a line chart plotting yearly revenue for Amazon and Walmart for the years 1996-2025."
+                },
+                {
+                    "description": "On the line chart plotting yearly revenue, make sure years are displayed on the horizontal axis (x axis)."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
+        },
+        {
+            "description": "B",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell B33 to forecast year 2045 for Amazon. Make sure the completed function and arguments appear in the formula bar during the video."
+                },
+                {
+                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell C33 to forecast year 2045 for Walmart. Make sure the completed function and arguments appear in the formula bar during the video."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
+        },
+        {
+            "description": "C",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Update the line chart to add a linear forecast trendline to both data series (AMZN and WMT)."
+                },
+                {
+                    "description": "Set the Trendline type to be Linear and forecast forward for 20 periods."
+                },
+                {
+                    "description": "Label the line chart with the linear forecast trendlines as “Linear Trends”."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
+        },
+        {
+            "description": "D",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Duplicate your chart and modify the second chart to show polynomial (order 2) forecast trendlines for both data series (AMZN and WMT)."
+                },
+                {
+                    "description": "Label the line chart with polynomial (order 2) forecast trendlines as “non-Linear Trends”."
+                },
+                {
+                    "description": "Adjust chart positions so both the linear and polynomial trendline charts are visible on the screen at the same time."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
+        },
+        {
+            "description": "E",
+            "weight": 10.0,
+            "criteria": [
+                {
+                    "description": "Discuss the R-squared values."
+                },
+                {
+                    "description": "Describe which trendline method provides the best forecast based on the data provided."
+                }
+            ],
+            "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
+        },
+        {
+            "description": "Function Purpose",
+            "weight": 4.0,
+            "criteria": [
+                {
+                    "description": "The purpose of the function/capability demonstrated, what is its purpose, when and why would it be used are described by the student."
+                },
+                {
+                    "description": "Alternate uses of the function/capability demonstrated are mentioned by the student."
+                }
+            ],
+            "scoring_instructions": "If the purpose of the function/capability demonstrated, what is its purpose, when and why would it be used are described by the student, award full points. If the alternate uses of the function/capability demonstrated are mentioned by the student, award half points. If neither are described, award 0 points."
+        },
+        {
+            "description": "Function Help",
+            "weight": 3.0,
+            "criteria": [
+                {
+                    "description": "Student gives sophisticated advice or a demonstration on finding help for the function/capability."
+                },
+                {
+                    "description": "Student mentions Formula Builder."
+                },
+                {
+                    "description": "URLs or references to help resources are provided by the student."
+                },
+                {
+                    "description": "Student verbally recommends searching for help regarding the function/capability on online search engines, Google, or Microsoft."
+                }
+            ],
+            "scoring_instructions": "If the student gives sophisticated advice or a demonstration on finding help for the function/capability, award full points. If the student only mentions Formula Builder, award 2/3 points. If the URLs or references to help resources are provided by the student, award 1/3 points. If the student recommends searching for help regarding the function/capability on online search engines, Google, or Microsoft, award 1/3 points."
+        }
+    ]
+}

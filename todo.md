@@ -10,20 +10,20 @@ TO DO
     - Try to use "tv" instead
     - Pass to Parker if can't fix
 
-- Pivot to using the new rubric from the spring
-    - make sure to divide the students between "forecasting" and "car loan", since these are different rubrics
-
-- Choose 10 videos randomly to watch and know really well
+- Choose 10 videos to watch and know really well. This will be for me to verify the system performance
+    - choose a diverse set of 10 videos
     - Make sure all the important frames are extracted
     - Cross check each video with the true grade and the autograder grade
-
-- Finish cleaning up codebase 
-    - deleting old files
-    - define the correct model to be used everywhere (preprocess and eval)
+- Use the spring rubrics from to assess the chosen 10 students
 
 - Re-implement automatic rubric tree construction
     - Attach assignment instructions to the tree
     - Attach eval examples to the tree
+
+- Analyze why A-D items on fall rubric have low scores and try to improve accuracy
+
+- Create a student metadata file, which includes all the artifacts and metadata-level information about them.
+- Make a tool to access this metadata
 
 
 DONE
@@ -49,10 +49,15 @@ DONE
 - Lower frame difference threshold for choosing key frames to make sure all important frames are captured
     - Already lowered from 0.32 to 0.1
 
+- Manually make the spring rubrics for car loan and forecast
+
 
 OPTIONS FOR IMPROVEMENT
 ===
-- Add analysis for runtime and cost
+- Add cost analysis for each run
+    - which models are being used
+    - how many tokens are being used
+    - how much time it takes
 
 - Add recalculating and averaging category scores using Olivia's strategy for consistency and confidence scores
 
@@ -68,3 +73,6 @@ OPTIONS FOR IMPROVEMENT
 - Parallelize/multithread for speedup
     - Also look into using AsyncOpenAI for higher concurrency
     - Test OpenAI rate limiting to find out how many open queries I can have at one time
+
+- Use "smarter" models that are better at complex reasoning
+    - OpenAI o1/o3, DeepSeek-R1, and Claude 3.7 Sonnet

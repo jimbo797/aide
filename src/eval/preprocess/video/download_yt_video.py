@@ -45,6 +45,7 @@ def _ydl_video_opts(
         "quiet": True,
         "no_warnings": True,
         "noprogress": True,
+        "cookies_from_browser": "chrome",
     }
     node = shutil.which("node")
     if node:

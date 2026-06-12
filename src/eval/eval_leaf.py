@@ -143,7 +143,9 @@ def _plan_tools(
             for s in tool_docs
         )
     else:
-        tool_list = "(none — no preprocessed transcript or frame summaries found for this submission)"
+        tool_list = (
+            "(none — no preprocessed transcript, frame summaries, or metadata found for this submission)"
+        )
 
     messages = [
         {
@@ -310,7 +312,7 @@ def eval_leaf(
     if not available_tools(ctx):
         eval_plan = EvalPlan(
             reasoning=(
-                "No preprocessed transcript or frame summaries were found for this submission; "
+                "No preprocessed transcript, frame summaries, or metadata were found for this submission; "
                 "cannot gather evidence."
             ),
             sufficient_to_judge=False,

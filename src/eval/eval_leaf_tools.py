@@ -12,6 +12,7 @@ ToolName = Literal[
     "search_transcript",
     "list_frame_summaries",
     "read_frame_summaries",
+    "read_metadata",
 ]
 
 TOOL_NAMES: tuple[ToolName, ...] = (
@@ -19,6 +20,7 @@ TOOL_NAMES: tuple[ToolName, ...] = (
     "search_transcript",
     "list_frame_summaries",
     "read_frame_summaries",
+    "read_metadata",
 )
 
 
@@ -28,12 +30,14 @@ class SubmissionContext:
     preprocess_dir: Path
     transcript: str | None
     frame_summaries: list[dict[str, Any]] | None
+    metadata: dict[str, Any] | None
 
     @classmethod
     def load(cls, alias: str, preprocess_dir: Path) -> SubmissionContext:
         base = preprocess_dir / alias
         transcript_path = base / "transcript.txt"
         summaries_path = base / "frames_summary.json"
+        metadata_path = base / "metadata.json"
 
         transcript: str | None = None
         if transcript_path.is_file():
@@ -45,11 +49,18 @@ class SubmissionContext:
             if isinstance(raw, list):
                 frame_summaries = [x for x in raw if isinstance(x, dict)]
 
+        metadata: dict[str, Any] | None = None
+        if metadata_path.is_file():
+            raw = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                metadata = raw
+
         return cls(
             alias=alias,
             preprocess_dir=base,
             transcript=transcript,
             frame_summaries=frame_summaries,
+            metadata=metadata,
         )
 
 
@@ -59,6 +70,8 @@ def available_tools(ctx: SubmissionContext) -> list[ToolName]:
         names.extend(["read_transcript", "search_transcript"])
     if ctx.frame_summaries is not None:
         names.extend(["list_frame_summaries", "read_frame_summaries"])
+    if ctx.metadata is not None:
+        names.extend(["read_metadata"])
     return names
 
 
@@ -147,6 +160,20 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                     },
                 },
             ]
+        )
+    if ctx.metadata is not None:
+        schemas.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": "read_metadata",
+                    "description": (
+                        "Read structural video metadata "
+                        "(duration, resolution, codec, file size, bit rate, etc.)."
+                    ),
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
         )
     return schemas
 
@@ -251,5 +278,11 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
                 }
             )
         return {"ok": True, "frames": details}
+
+    if name == "read_metadata":
+        loaded = ctx.metadata
+        if loaded is None:
+            return {"ok": False, "error": "No metadata available for this submission."}
+        return {"ok": True, "metadata": loaded}
 
     return {"ok": False, "error": f"Unknown tool: {name}"}
