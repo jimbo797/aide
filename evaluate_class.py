@@ -3,12 +3,13 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 import csv
-from src.eval.preprocess.preprocess import preprocess_video
+from src.eval.preprocess.video.preprocess import preprocess_video
+from src.eval.preprocess.excel.preprocess import preprocess_excel_sheet
 from src.eval.eval import eval_submission
 from src.rubric.rubric_types import Rubric
 from src.util import log
 
-def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir: Path, output_dir: Path, model: str) -> float:
+def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir: Path, output_dir: Path, model: str, sheet_name: str) -> float:
     df = pd.read_csv(assigment_list_csv_path)
 
     class_results = []
@@ -21,7 +22,11 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
             alias = row["email"].split("@")[0]
             log(alias, "Starting")
 
-            log(alias, "Preprocessing")
+            log(alias, "Preprocessing excel sheet")
+            excel_filepath = row['spreadsheet_path']
+            preprocess_excel_sheet(filepath=excel_filepath, alias=alias, preprocess_dir=preprocess_dir, sheet_name=sheet_name)
+
+            log(alias, "Preprocessing video")
             preprocess_video(url, alias, preprocess_dir)
             
             log(alias, "Evaluating")
@@ -47,17 +52,18 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
     print(f"Average time: {sum(times_taken) / len(times_taken)}")
 
 if __name__ == "__main__":
-    # json_data = Path("rubrics/gsu-spring-forecast-manual.json").read_text()
-    json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text()
+    json_data = Path("rubrics/gsu-spring-forecast-manual.json").read_text()
+    # json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text()
     rubric = Rubric.model_validate_json(json_data)
 
     evaluate_class(
-        # assigment_list_csv_path=Path("student-responses/gsu-student-spring-forecast.csv"), 
-        assigment_list_csv_path=Path("student-responses/gsu-student-spring-carloan.csv"), 
+        assigment_list_csv_path=Path("student-responses/gsu-student-spring-forecast-short.csv"), 
+        # assigment_list_csv_path=Path("student-responses/gsu-student-spring-carloan-short.csv"), 
         rubric=rubric, 
         preprocess_dir=Path("out/preprocess"), 
         output_dir=Path("out/results"),
-        model="gpt-5.5"
+        model="gpt-5.5",
+        sheet_name="Forecast"
         )
 
 

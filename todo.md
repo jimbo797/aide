@@ -1,6 +1,10 @@
 TO DO
 ===
 
+- Implement spreadsheet reading
+    - Initial design made
+    - Fix the autograder not being about to see all of the charts, like trendlines and r^2 values. Maybe pass the entire metadata into the llm?
+
 - Look at biggest discrepencies between actual and AIDE scores, and plan how to decrease these differences
     - Video quality
     - Sections A-D
@@ -21,9 +25,6 @@ TO DO
     - Attach eval examples to the tree
 
 - Analyze why A-D items on fall rubric have low scores and try to improve accuracy
-
-- Create a student metadata file, which includes all the artifacts and metadata-level information about them.
-- Make a tool to access this metadata
 
 
 DONE
@@ -50,6 +51,9 @@ DONE
     - Already lowered from 0.32 to 0.1
 
 - Manually make the spring rubrics for car loan and forecast
+
+- Create a student metadata file, which includes all the artifacts and metadata-level information about them.
+- Make a tool to access this metadata
 
 
 OPTIONS FOR IMPROVEMENT

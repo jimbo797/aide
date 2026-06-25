@@ -33,13 +33,16 @@ class PlannedToolCall(BaseModel):
     rationale: str = Field(
         description="One sentence on why this tool helps judge the criterion."
     )
-    offset: int | None = Field(default=None, description="For read_transcript.")
-    max_chars: int | None = Field(default=None, description="For read_transcript.")
+    offset: int | None = Field(default=None, description="For read_transcript or read_excel.")
+    max_chars: int | None = Field(default=None, description="For read_transcript or read_excel.")
     query: str | None = Field(default=None, description="For search_transcript.")
     max_hits: int | None = Field(default=None, description="For search_transcript.")
     frame_indices: list[int] | None = Field(
         default=None, description="For read_frame_summaries."
     )
+    include_formulas: bool | None = Field(default=None, description="For read_excel.")
+    include_charts: bool | None = Field(default=None, description="For read_excel.")
+    include_chart_values: bool | None = Field(default=None, description="For read_excel.")
 
     def to_arguments(self) -> dict[str, Any]:
         args: dict[str, Any] = {}
@@ -53,6 +56,12 @@ class PlannedToolCall(BaseModel):
             args["max_hits"] = self.max_hits
         if self.frame_indices is not None:
             args["frame_indices"] = self.frame_indices
+        if self.include_formulas is not None:
+            args["include_formulas"] = self.include_formulas
+        if self.include_charts is not None:
+            args["include_charts"] = self.include_charts
+        if self.include_chart_values is not None:
+            args["include_chart_values"] = self.include_chart_values
         return args
 
 
@@ -144,7 +153,7 @@ def _plan_tools(
         )
     else:
         tool_list = (
-            "(none — no preprocessed transcript, frame summaries, or metadata found for this submission)"
+            "(none — no preprocessed transcript, frame summaries, metadata, or excel content found for this submission)"
         )
 
     messages = [
@@ -290,7 +299,7 @@ def eval_leaf(
 
     Phases:
     1. Plan which evidence tools to use for this criterion.
-    2. Execute those tools against transcript / frame-summary artifacts.
+    2. Execute those tools against transcript / frame-summary / excel artifacts.
     3. Plan how to judge the criterion from the tool results.
     4. Output met | not_met | undetermined with evidence.
     """
@@ -312,7 +321,7 @@ def eval_leaf(
     if not available_tools(ctx):
         eval_plan = EvalPlan(
             reasoning=(
-                "No preprocessed transcript, frame summaries, or metadata were found for this submission; "
+                "No preprocessed transcript, frame summaries, metadata, or excel content were found for this submission; "
                 "cannot gather evidence."
             ),
             sufficient_to_judge=False,

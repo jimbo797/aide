@@ -12,6 +12,7 @@ from src.eval.preprocess.video.transcribe import transcribe_video
 from src.eval.preprocess.video.video_metadata import get_video_metadata
 from src.util import log
 
+# preprocesses an online youtube video
 def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
     video_dir = preprocess_dir / alias
     video_dir.mkdir(parents=True, exist_ok=True)
@@ -55,7 +56,6 @@ def preprocess_video_list(assigment_list_csv_path: Path, preprocess_dir: Path) -
         url = row["link"]
         alias = row["email"].split("@")[0]
         preprocess_video(url, alias, preprocess_dir)
-
 
 if __name__ == "__main__":
 
