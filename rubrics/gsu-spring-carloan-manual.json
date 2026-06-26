@@ -96,7 +96,7 @@
             "weight": 10.0,
             "criteria": [
                 {
-                    "description": "Demonstrate using the Interest Payment IPMT() function to calculate monthly interest due each month in column D of the table provided. The completed function and arguments should appear in the formula bar during the video."
+                    "description": "Demonstrate using the Interest Payment IPMT() function to calculate monthly interest due each month in column D of the table provided."
                 }
             ],
             "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
@@ -106,7 +106,7 @@
             "weight": 10.0,
             "criteria": [
                 {
-                    "description": "Demonstrate using the Principal Payment PPMT() function to calculate monthly principal due each month in column E of the table provided. The completed function and arguments should appear in the formula bar during the video."
+                    "description": "Demonstrate using the Principal Payment PPMT() function to calculate monthly principal due each month in column E of the table provided."
                 }
             ],
             "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
@@ -116,7 +116,7 @@
             "weight": 10.0,
             "criteria": [
                 {
-                    "description": "Demonstrate calculating monthly payment totals (sum of interest and principal) for each month in column F of the table provided. The completed math formula should appear in the formula bar during the video."
+                    "description": "Demonstrate calculating monthly payment totals (sum of interest and principal) for each month in column F of the table provided."
                 }
             ],
             "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."

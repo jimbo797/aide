@@ -1,7 +1,7 @@
 # ENTRY POINT FOR EVALUATING A CLASS
 from pathlib import Path
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 from src.eval.preprocess.video.preprocess import preprocess_video
 from src.eval.preprocess.excel.preprocess import preprocess_excel_sheet
@@ -40,7 +40,7 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
                     writer.writerow([alias, score])
         except Exception as e:
             log(alias, f"Error: {e}")
-            continue
+            # continue
 
         end_time = datetime.now()
         delta_time = end_time - start_time
@@ -48,22 +48,25 @@ def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir
         log(alias, f"Finished. Time taken: {delta_time}")
     
     print(f"Finished evaluating class")
-    print(f"Total time: {sum(times_taken)}")
-    print(f"Average time: {sum(times_taken) / len(times_taken)}")
+    total_time = sum(times_taken, timedelta())
+    print(f"Total time: {total_time}")
+    if times_taken:
+        print(f"Average time: {total_time / len(times_taken)}")
 
 if __name__ == "__main__":
-    json_data = Path("rubrics/gsu-spring-forecast-manual.json").read_text()
-    # json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text()
+    # json_data = Path("rubrics/gsu-spring-forecast-manual.json").read_text()
+    json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text()
     rubric = Rubric.model_validate_json(json_data)
 
     evaluate_class(
-        assigment_list_csv_path=Path("student-responses/gsu-student-spring-forecast-short.csv"), 
-        # assigment_list_csv_path=Path("student-responses/gsu-student-spring-carloan-short.csv"), 
+        # assigment_list_csv_path=Path("student-responses/gsu-student-spring-forecast-short.csv"), 
+        assigment_list_csv_path=Path("student-responses/gsu-student-spring-carloan-short.csv"), 
         rubric=rubric, 
         preprocess_dir=Path("out/preprocess"), 
         output_dir=Path("out/results"),
         model="gpt-5.5",
-        sheet_name="Forecast"
+        # sheet_name="Forecast"
+        sheet_name="CarLoan"
         )
 
 

@@ -58,11 +58,55 @@ def get_series_label(series) -> str | None:
     return None
 
 
+def text_value(tx) -> str | None:
+    if tx is None:
+        return None
+    if getattr(tx, "v", None) is not None:
+        return str(tx.v)
+    rich = getattr(tx, "rich", None)
+    if rich and rich.p:
+        parts = [r.t for p in rich.p for r in (p.r or []) if r.t]
+        return "".join(parts) or None
+    str_ref = getattr(tx, "strRef", None)
+    if str_ref and str_ref.strCache and str_ref.strCache.pt:
+        return str(str_ref.strCache.pt[0].v)
+    return None
+
+
+def serialize_trendline(tl) -> dict | None:
+    if tl is None:
+        return None
+    lbl_tx = text_value(tl.trendlineLbl.tx) if tl.trendlineLbl else None
+    return {
+        "type": tl.trendlineType,
+        "order": tl.order,
+        "forward": tl.forward,
+        "backward": tl.backward,
+        "disp_r_squared": tl.dispRSqr,
+        "disp_equation": tl.dispEq,
+        "label_text": lbl_tx,
+    }
+
+
+def serialize_anchor(anchor) -> dict | None:
+    if anchor is None:
+        return None
+    return {
+        "from_col": anchor._from.col,
+        "from_row": anchor._from.row,
+        "to_col": anchor.to.col,
+        "to_row": anchor.to.row,
+    }
+
+
 def get_excel_charts(ws: Worksheet) -> list[dict]:
     charts = []
     for chart in ws._charts:
         chart_data = {
             "type": type(chart).__name__,
+            "title": text_value(chart.title.tx if chart.title else None),
+            "legend": chart.legend.position if chart.legend else None,
+            "anchor": serialize_anchor(chart.anchor),
             "series": [],
         }
         for series in chart.series:
@@ -78,6 +122,7 @@ def get_excel_charts(ws: Worksheet) -> list[dict]:
                     "label_ref": series.title.strRef.f if series.title and series.title.strRef else None,
                     "values": values,
                     "values_ref": values_ref,
+                    "trendline": serialize_trendline(series.trendline),
                 }
             )
         charts.append(chart_data)
@@ -113,8 +158,8 @@ def preprocess_excel_sheet(filepath: str, alias: str, preprocess_dir: Path, shee
 
 if __name__ == "__main__":
     preprocess_excel_sheet(
-        filepath="gsu-materials/gsu-grading-spring-2/Video_Data/Kamya Kelly Video Data.xlsm",
-        alias="kamya_kelly",
+        filepath="gsu-materials/gsu-grading-spring-2/Video_Data/Video_Data_7.0b gallagher.xlsm",
+        alias="ggallagher",
         preprocess_dir=Path("aide/out/preprocess"),
         sheet_name="Forecast",
     )

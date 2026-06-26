@@ -109,10 +109,10 @@
             "weight": 10.0,
             "criteria": [
                 {
-                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell B33 to forecast year 2045 for Amazon. Make sure the completed function and arguments appear in the formula bar during the video."
+                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell B33 to forecast year 2045 for Amazon."
                 },
                 {
-                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell C33 to forecast year 2045 for Walmart. Make sure the completed function and arguments appear in the formula bar during the video."
+                    "description": "Demonstrate using the Linear Forecast function FORECAST.LINEAR() in cell C33 to forecast year 2045 for Walmart."
                 }
             ],
             "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."

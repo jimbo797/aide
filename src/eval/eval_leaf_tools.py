@@ -196,8 +196,10 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                     "name": "read_excel",
                     "description": (
                         "Read preprocessed Excel sheet content: sheet name, formula cells, "
-                        "chart metadata (type, series labels, data refs, trendlines), "
-                        "and a slice of cell values as CSV text (by character offset)."
+                        "chart metadata, and a slice of cell values as CSV text (by character offset). "
+                        "When include_charts is true, each chart includes type, title, legend, position, "
+                        "and per-series data refs plus trendline settings (type, polynomial order, "
+                        "forecast periods, whether R²/equation are displayed, and cached label text)."
                     ),
                     "parameters": {
                         "type": "object",
@@ -219,7 +221,10 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                             },
                             "include_charts": {
                                 "type": "boolean",
-                                "description": "Include chart metadata from preprocessing (default true).",
+                                "description": (
+                                    "Include chart metadata from preprocessing (default true), "
+                                    "including trendline type, forecast periods, and R²/equation display settings."
+                                ),
                                 "default": True,
                             },
                             "include_chart_values": {
@@ -253,7 +258,15 @@ def _format_charts_for_tool(
             if include_values and "values" in series:
                 entry["values"] = series["values"]
             series_out.append(entry)
-        out.append({"type": chart.get("type"), "series": series_out})
+        out.append(
+            {
+                "type": chart.get("type"),
+                "title": chart.get("title"),
+                "legend": chart.get("legend"),
+                "anchor": chart.get("anchor"),
+                "series": series_out,
+            }
+        )
     return out
 
 
