@@ -1,30 +1,23 @@
 TO DO
 ===
 
-- Implement spreadsheet reading
-    - Initial design made
-    - Fix the autograder not being about to see all of the charts, like trendlines and r^2 values. Maybe pass the entire metadata into the llm?
-
 - Look at biggest discrepencies between actual and AIDE scores, and plan how to decrease these differences
     - Video quality
-    - Sections A-D
-        - Major issue with section C
+    - Navigation
+
+- Add additional frame sampling
+
+- Do a column-by-column analysis for score differences and undetermined counts
 
 - Fix video quality on android player clients. 
     - Try to use "tv" instead
     - Pass to Parker if can't fix
 
-- Choose 10 videos to watch and know really well. This will be for me to verify the system performance
-    - choose a diverse set of 10 videos
-    - Make sure all the important frames are extracted
-    - Cross check each video with the true grade and the autograder grade
-- Use the spring rubrics from to assess the chosen 10 students
-
 - Re-implement automatic rubric tree construction
     - Attach assignment instructions to the tree
     - Attach eval examples to the tree
 
-- Analyze why A-D items on fall rubric have low scores and try to improve accuracy
+- Strategize about how to make the autograder better without spreadsheet tool
 
 
 DONE
@@ -55,6 +48,10 @@ DONE
 - Create a student metadata file, which includes all the artifacts and metadata-level information about them.
 - Make a tool to access this metadata
 
+- Implement spreadsheet reading
+    - Initial design made
+    - Fix the autograder not being about to see all of the charts, like trendlines and r^2 values. Maybe pass the entire metadata into the llm
+
 
 OPTIONS FOR IMPROVEMENT
 ===
@@ -65,7 +62,6 @@ OPTIONS FOR IMPROVEMENT
 
 - Add recalculating and averaging category scores using Olivia's strategy for consistency and confidence scores
 
-- Add frame random sampling
 - For frame deltas frame selection, try to select a nearby frame neighbor that is the least blurry
     - using perceived frame quality
 

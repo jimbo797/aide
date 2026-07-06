@@ -37,7 +37,8 @@ def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
         video_path, 
         frames_dir, 
         scene_threshold=0.1, 
-        scale_max_width=1080
+        scale_max_width=1080,
+        sample_interval_seconds=30,
     )
     summary_path = preprocess_dir / alias / "frames_summary.json"
     
