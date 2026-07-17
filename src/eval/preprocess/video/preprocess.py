@@ -12,11 +12,14 @@ from src.eval.preprocess.video.transcribe import transcribe_video
 from src.eval.preprocess.video.video_metadata import get_video_metadata
 from src.util import log
 
-# preprocesses an online youtube video
-def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
+def preprocess_video_file(
+    video_path: Path,
+    alias: str,
+    preprocess_dir: Path,
+) -> None:
+    """Preprocess a local video without deleting the source file."""
     video_dir = preprocess_dir / alias
     video_dir.mkdir(parents=True, exist_ok=True)
-    video_path = download_youtube_video(url, video_dir, "video", max_height=1080)
 
     # Get metadata
     metadata_path = preprocess_dir / alias / "metadata.json"
@@ -44,6 +47,15 @@ def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
     
     log(alias, "Annotating frames")
     annotate_frames(frames, summary_path)
+
+
+# preprocesses an online youtube video
+def preprocess_video(url: str, alias: str, preprocess_dir: Path) -> None:
+    video_dir = preprocess_dir / alias
+    video_dir.mkdir(parents=True, exist_ok=True)
+    video_path = download_youtube_video(url, video_dir, "video", max_height=1080)
+
+    preprocess_video_file(video_path, alias, preprocess_dir)
 
     # Delete the video file
     # TODO: Maybe keep it until eval for a student is complete

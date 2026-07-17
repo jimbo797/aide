@@ -30,40 +30,43 @@ TOOL_NAMES: tuple[ToolName, ...] = (
 class SubmissionContext:
     alias: str
     preprocess_dir: Path
-    transcript: str | None
-    frame_summaries: list[dict[str, Any]] | None
-    metadata: dict[str, Any] | None
-    excel: dict[str, Any] | None
+    transcript: dict[str, str]
+    frame_summaries: dict[str, list[dict[str, Any]]]
+    metadata: dict[str, dict[str, Any]]
+    excel: dict[str, dict[str, Any]]
 
     @classmethod
     def load(cls, alias: str, preprocess_dir: Path) -> SubmissionContext:
         base = preprocess_dir / alias
-        transcript_path = base / "transcript.txt"
-        summaries_path = base / "frames_summary.json"
-        metadata_path = base / "metadata.json"
-        excel_path = base / "excel.json"
+        transcript: dict[str, str] = {}
+        frame_summaries: dict[str, list[dict[str, Any]]] = {}
+        metadata: dict[str, dict[str, Any]] = {}
+        excel: dict[str, dict[str, Any]] = {}
 
-        transcript: str | None = None
-        if transcript_path.is_file():
-            transcript = transcript_path.read_text(encoding="utf-8")
+        def artifact_name(path: Path) -> str:
+            relative_parent = path.parent.relative_to(base)
+            return str(relative_parent) if relative_parent.parts else "submission"
 
-        frame_summaries: list[dict[str, Any]] | None = None
-        if summaries_path.is_file():
-            raw = json.loads(summaries_path.read_text(encoding="utf-8"))
-            if isinstance(raw, list):
-                frame_summaries = [x for x in raw if isinstance(x, dict)]
+        if base.is_dir():
+            for path in sorted(base.rglob("transcript.txt")):
+                transcript[artifact_name(path)] = path.read_text(encoding="utf-8")
 
-        metadata: dict[str, Any] | None = None
-        if metadata_path.is_file():
-            raw = json.loads(metadata_path.read_text(encoding="utf-8"))
-            if isinstance(raw, dict):
-                metadata = raw
+            for path in sorted(base.rglob("frames_summary.json")):
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(raw, list):
+                    frame_summaries[artifact_name(path)] = [
+                        item for item in raw if isinstance(item, dict)
+                    ]
 
-        excel: dict[str, Any] | None = None
-        if excel_path.is_file():
-            raw = json.loads(excel_path.read_text(encoding="utf-8"))
-            if isinstance(raw, dict):
-                excel = raw
+            for path in sorted(base.rglob("metadata.json")):
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    metadata[artifact_name(path)] = raw
+
+            for path in sorted(base.rglob("excel.json")):
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    excel[artifact_name(path)] = raw
 
         return cls(
             alias=alias,
@@ -77,21 +80,31 @@ class SubmissionContext:
 
 def available_tools(ctx: SubmissionContext) -> list[ToolName]:
     names: list[ToolName] = []
-    if ctx.transcript is not None:
+    if ctx.transcript:
         names.extend(["read_transcript", "search_transcript"])
-    if ctx.frame_summaries is not None:
+    if ctx.frame_summaries:
         names.extend(["list_frame_summaries", "read_frame_summaries"])
-    if ctx.metadata is not None:
+    if ctx.metadata:
         names.extend(["read_metadata"])
-    if ctx.excel is not None:
+    if ctx.excel:
         names.extend(["read_excel"])
     return names
+
+
+def _artifact_property(artifacts: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "string",
+        "enum": sorted(artifacts),
+        "description": (
+            "Artifact directory to read. May be omitted when only one is available."
+        ),
+    }
 
 
 def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
     """OpenAI function schemas for tools that have data for this submission."""
     schemas: list[dict[str, Any]] = []
-    if ctx.transcript is not None:
+    if ctx.transcript:
         schemas.extend(
             [
                 {
@@ -104,6 +117,7 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                         "parameters": {
                             "type": "object",
                             "properties": {
+                                "artifact": _artifact_property(ctx.transcript),
                                 "offset": {
                                     "type": "integer",
                                     "description": "0-based character offset (default 0).",
@@ -115,6 +129,9 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                                     "default": 8000,
                                 },
                             },
+                            "required": (
+                                ["artifact"] if len(ctx.transcript) > 1 else []
+                            ),
                         },
                     },
                 },
@@ -129,16 +146,21 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                         "parameters": {
                             "type": "object",
                             "properties": {
+                                "artifact": _artifact_property(ctx.transcript),
                                 "query": {"type": "string"},
                                 "max_hits": {"type": "integer", "default": 15},
                             },
-                            "required": ["query"],
+                            "required": (
+                                ["query", "artifact"]
+                                if len(ctx.transcript) > 1
+                                else ["query"]
+                            ),
                         },
                     },
                 },
             ]
         )
-    if ctx.frame_summaries is not None:
+    if ctx.frame_summaries:
         schemas.extend(
             [
                 {
@@ -149,7 +171,15 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                             "List all preprocessed vision summaries of key video frames "
                             "(index, timestamp, short preview). Use before fetching full frame detail."
                         ),
-                        "parameters": {"type": "object", "properties": {}},
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "artifact": _artifact_property(ctx.frame_summaries)
+                            },
+                            "required": (
+                                ["artifact"] if len(ctx.frame_summaries) > 1 else []
+                            ),
+                        },
                     },
                 },
                 {
@@ -162,19 +192,24 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                         "parameters": {
                             "type": "object",
                             "properties": {
+                                "artifact": _artifact_property(ctx.frame_summaries),
                                 "frame_indices": {
                                     "type": "array",
                                     "items": {"type": "integer"},
                                     "description": "0-based frame indices (max 10 per call).",
                                 },
                             },
-                            "required": ["frame_indices"],
+                            "required": (
+                                ["frame_indices", "artifact"]
+                                if len(ctx.frame_summaries) > 1
+                                else ["frame_indices"]
+                            ),
                         },
                     },
                 },
             ]
         )
-    if ctx.metadata is not None:
+    if ctx.metadata:
         schemas.append(
             {
                 "type": "function",
@@ -184,11 +219,17 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                         "Read structural video metadata "
                         "(duration, resolution, codec, file size, bit rate, etc.)."
                     ),
-                    "parameters": {"type": "object", "properties": {}},
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "artifact": _artifact_property(ctx.metadata)
+                        },
+                        "required": ["artifact"] if len(ctx.metadata) > 1 else [],
+                    },
                 },
             }
         )
-    if ctx.excel is not None:
+    if ctx.excel:
         schemas.append(
             {
                 "type": "function",
@@ -204,6 +245,7 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                     "parameters": {
                         "type": "object",
                         "properties": {
+                            "artifact": _artifact_property(ctx.excel),
                             "offset": {
                                 "type": "integer",
                                 "description": "0-based character offset into sheet_values_csv (default 0).",
@@ -236,6 +278,7 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                                 "default": False,
                             },
                         },
+                        "required": ["artifact"] if len(ctx.excel) > 1 else [],
                     },
                 },
             }
@@ -270,11 +313,42 @@ def _format_charts_for_tool(
     return out
 
 
+def _select_artifact(
+    artifacts: dict[str, Any],
+    args: dict[str, Any],
+    artifact_type: str,
+) -> tuple[str | None, Any | None, dict[str, Any] | None]:
+    requested = args.get("artifact")
+    if requested is None:
+        if len(artifacts) == 1:
+            name = next(iter(artifacts))
+            return name, artifacts[name], None
+        return None, None, {
+            "ok": False,
+            "error": f"artifact is required when multiple {artifact_type} artifacts exist",
+            "available_artifacts": sorted(artifacts),
+        }
+
+    name = str(requested)
+    if name not in artifacts:
+        return None, None, {
+            "ok": False,
+            "error": f"Unknown {artifact_type} artifact: {name}",
+            "available_artifacts": sorted(artifacts),
+        }
+    return name, artifacts[name], None
+
+
 def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> dict[str, Any]:
     if name == "read_transcript":
-        text = ctx.transcript
-        if text is None:
+        if not ctx.transcript:
             return {"ok": False, "error": "No transcript available for this submission."}
+        artifact, text, error = _select_artifact(
+            ctx.transcript, args, "transcript"
+        )
+        if error is not None:
+            return error
+        assert isinstance(text, str)
         offset = int(args.get("offset") or 0)
         max_chars = int(args.get("max_chars") or 8000)
         if offset < 0 or offset > len(text):
@@ -282,6 +356,7 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
         chunk = text[offset : offset + max_chars]
         return {
             "ok": True,
+            "artifact": artifact,
             "offset": offset,
             "returned_chars": len(chunk),
             "total_chars": len(text),
@@ -290,9 +365,14 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
         }
 
     if name == "search_transcript":
-        text = ctx.transcript
-        if text is None:
+        if not ctx.transcript:
             return {"ok": False, "error": "No transcript available for this submission."}
+        artifact, text, error = _select_artifact(
+            ctx.transcript, args, "transcript"
+        )
+        if error is not None:
+            return error
+        assert isinstance(text, str)
         q = (args.get("query") or "").strip()
         if len(q) < 2:
             return {"ok": False, "error": "query must be at least 2 characters"}
@@ -310,12 +390,23 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
             snippet = text[a:b].replace("\n", " ")
             hits.append({"index": i, "snippet": snippet})
             start = i + 1
-        return {"ok": True, "query": q, "hit_count": len(hits), "hits": hits}
+        return {
+            "ok": True,
+            "artifact": artifact,
+            "query": q,
+            "hit_count": len(hits),
+            "hits": hits,
+        }
 
     if name == "list_frame_summaries":
-        loaded = ctx.frame_summaries
-        if loaded is None:
+        if not ctx.frame_summaries:
             return {"ok": False, "error": "No frame summaries available for this submission."}
+        artifact, loaded, error = _select_artifact(
+            ctx.frame_summaries, args, "frame summary"
+        )
+        if error is not None:
+            return error
+        assert isinstance(loaded, list)
         frames_out: list[dict[str, Any]] = []
         for i, item in enumerate(loaded):
             ann = item.get("annotation") or {}
@@ -330,12 +421,22 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
                     "preview": so,
                 }
             )
-        return {"ok": True, "total": len(loaded), "frames": frames_out}
+        return {
+            "ok": True,
+            "artifact": artifact,
+            "total": len(loaded),
+            "frames": frames_out,
+        }
 
     if name == "read_frame_summaries":
-        loaded = ctx.frame_summaries
-        if loaded is None:
+        if not ctx.frame_summaries:
             return {"ok": False, "error": "No frame summaries available for this submission."}
+        artifact, loaded, error = _select_artifact(
+            ctx.frame_summaries, args, "frame summary"
+        )
+        if error is not None:
+            return error
+        assert isinstance(loaded, list)
         raw_indices = args.get("frame_indices")
         if not isinstance(raw_indices, list) or not raw_indices:
             return {"ok": False, "error": "frame_indices must be a non-empty array of integers"}
@@ -369,18 +470,25 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
                     "annotation": item.get("annotation"),
                 }
             )
-        return {"ok": True, "frames": details}
+        return {"ok": True, "artifact": artifact, "frames": details}
 
     if name == "read_metadata":
-        loaded = ctx.metadata
-        if loaded is None:
+        if not ctx.metadata:
             return {"ok": False, "error": "No metadata available for this submission."}
-        return {"ok": True, "metadata": loaded}
+        artifact, loaded, error = _select_artifact(
+            ctx.metadata, args, "metadata"
+        )
+        if error is not None:
+            return error
+        return {"ok": True, "artifact": artifact, "metadata": loaded}
 
     if name == "read_excel":
-        loaded = ctx.excel
-        if loaded is None:
+        if not ctx.excel:
             return {"ok": False, "error": "No excel content available for this submission."}
+        artifact, loaded, error = _select_artifact(ctx.excel, args, "Excel")
+        if error is not None:
+            return error
+        assert isinstance(loaded, dict)
         csv_text = str(loaded.get("sheet_values_csv") or "")
         offset = int(args.get("offset") or 0)
         max_chars = int(args.get("max_chars") or 8000)
@@ -392,6 +500,7 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
         chunk = csv_text[offset : offset + max_chars]
         result: dict[str, Any] = {
             "ok": True,
+            "artifact": artifact,
             "sheet_name": loaded.get("sheet_name"),
             "offset": offset,
             "returned_chars": len(chunk),

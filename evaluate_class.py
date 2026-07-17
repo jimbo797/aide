@@ -1,33 +1,31 @@
 # ENTRY POINT FOR EVALUATING A CLASS
 from pathlib import Path
-import pandas as pd
 from datetime import datetime, timedelta
 import csv
-from src.eval.preprocess.video.preprocess import preprocess_video
-from src.eval.preprocess.excel.preprocess import preprocess_excel_sheet
+from src.eval.preprocess.preprocess_artifacts import preprocess_artifacts
 from src.eval.eval import eval_submission
 from src.rubric.rubric_types import Rubric
 from src.util import log
 
-def evaluate_class(assigment_list_csv_path: Path, rubric: Rubric, preprocess_dir: Path, output_dir: Path, model: str, sheet_name: str) -> float:
-    df = pd.read_csv(assigment_list_csv_path)
-
+def evaluate_class(rubric: Rubric, in_dir: Path, preprocess_dir: Path, output_dir: Path, model: str, sheet_name: str) -> None:
     class_results = []
     times_taken = []
-    for index, row in df.iterrows():
+    submission_dirs = sorted(path for path in in_dir.iterdir() if path.is_dir())
+
+    for submission_dir in submission_dirs:
+        alias = submission_dir.name
         start_time = datetime.now()
         # Just in case an error occurs, we don't want to stop the entire evaluation
         try:
-            url = row["URL"]
-            alias = row["email"].split("@")[0]
             log(alias, "Starting")
 
-            log(alias, "Preprocessing excel sheet")
-            excel_filepath = row['spreadsheet_path']
-            preprocess_excel_sheet(filepath=excel_filepath, alias=alias, preprocess_dir=preprocess_dir, sheet_name=sheet_name)
-
-            log(alias, "Preprocessing video")
-            preprocess_video(url, alias, preprocess_dir)
+            log(alias, "Preprocessing")
+            preprocess_artifacts(
+                alias,
+                submissions_dir=in_dir,
+                preprocess_dir=preprocess_dir,
+                sheet_name=sheet_name,
+            )
             
             log(alias, "Evaluating")
             score, results = eval_submission(alias, rubric, preprocess_dir=preprocess_dir, output_dir=output_dir, model=model)
@@ -59,9 +57,8 @@ if __name__ == "__main__":
     rubric = Rubric.model_validate_json(json_data)
 
     evaluate_class(
-        # assigment_list_csv_path=Path("student-responses/gsu-student-spring-forecast-short.csv"), 
-        assigment_list_csv_path=Path("student-responses/gsu-student-spring-carloan-short.csv"), 
         rubric=rubric, 
+        in_dir=Path("in"),
         preprocess_dir=Path("out/preprocess"), 
         output_dir=Path("out/results"),
         model="gpt-5.5",
