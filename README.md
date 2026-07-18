@@ -4,43 +4,44 @@ AIDE scores student video submissions against a weighted rubric using LLM-based 
 
 ## Quick start
 
-1. **Credentials** — Create `aide/.env` with your OpenAI API key (see [Environment](#environment)).
-2. **Rubric** — Use a hand-authored JSON rubric under `rubrics/` (see [Rubrics](#rubrics-manual-today)).
-3. **Class list** — Provide a local CSV of submissions (see [Student assignment list](#student-assignment-list)); this file is **not** committed to the public repo.
-4. **Run evaluation** — From the `aide` directory:
+1. **Install dependencies** — From the `aide` directory, run `python -m pip install -r requirements.txt` (see [Requirements](#requirements)).
+2. **Credentials** — Create `aide/.env` with your OpenAI API key (see [Environment](#environment)).
+3. **Inputs** — Put each student's submitted files under `in/<alias>/` (see [Input directory](#input-directory)).
+4. **Rubric** — Use a hand-authored JSON rubric under `rubrics/` (see [Rubrics](#rubrics-manual-today)).
+5. **Run evaluation** — From the `aide` directory:
 
 ```bash
 python evaluate_class.py
 ```
 
-5. **Analyze results** — Open `analysis.ipynb` and run cells to compare AIDE scores to instructor `true_score` values.
+6. **Analyze results** — Open `analysis.ipynb` and run cells to compare AIDE scores to instructor `true_score` values.
 
 ## Entry point: `evaluate_class.py`
 
 [`evaluate_class.py`](evaluate_class.py) is the main entry for batch-evaluating an entire class.
 
-For each row in the assignment CSV it:
+For each student directory under `in/` it:
 
-1. Derives a student **alias** from `email` (part before `@`).
-2. **Preprocesses** the video URL: download, transcribe, extract frames, annotate frames → `out/preprocess/<alias>/`.
+1. Uses the directory name as the student **alias**.
+2. **Preprocesses** every supported spreadsheet and video file in that directory → `out/preprocess/<alias>/<artifact-name>/`.
 3. **Evaluates** the submission against the rubric → per-student JSON in `out/results/<alias>.json` and a running `out/results/class_results.csv` (`alias`, `score`).
 
 Errors on one student are logged and skipped so the rest of the class can finish. Progress is checkpointed by rewriting `class_results.csv` after each successful student.
 
-Configure paths and model in the `if __name__ == "__main__"` block at the bottom of the file (CSV path, rubric JSON, `preprocess_dir`, `output_dir`, `model`).
+Configure paths and model in the `if __name__ == "__main__"` block at the bottom of the file (`in_dir`, rubric JSON, `preprocess_dir`, `output_dir`, `model`, and spreadsheet `sheet_name`).
 
 Core pipeline modules:
 
 | Step | Module |
 |------|--------|
-| Preprocess | `src.eval.preprocess.preprocess.preprocess_video` |
+| Preprocess | `src.eval.preprocess.preprocess_artifacts.preprocess_artifacts` |
 | Score | `src.eval.eval.eval_submission` |
 
 Category weights in the rubric are treated as **percentage points** (e.g. weight `25` = 25% of the total); each category gets a fraction in `[0, 1]` from leaf verdicts, then `category_points = score × weight`.
 
 ## Analysis: `analysis.ipynb`
 
-[`analysis.ipynb`](analysis.ipynb) compares **AIDE scores** (`out/results/class_results.csv`) to **instructor true scores** from the same assignment CSV.
+[`analysis.ipynb`](analysis.ipynb) compares **AIDE scores** (`out/results/class_results.csv`) to **instructor true scores** from the reference CSV configured in the notebook.
 
 Typical workflow in the notebook:
 
@@ -61,6 +62,16 @@ Automated rubric-to-tree tooling (`ratas-rubric.py`, skill trees) is documented 
 
 `rubrics/*.json` is listed in `.gitignore`; keep assignment-specific rubrics local or in a private store if needed.
 
+## Requirements
+
+The pinned Python dependencies are listed in [`requirements.txt`](requirements.txt). Install them with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The code requires Python 3.10 or newer. Video preprocessing also requires the system `ffmpeg` executable; `ffmpeg-python` in `requirements.txt` is only its Python wrapper. Confirm the executable is available with `ffmpeg -version`.
+
 ## Environment
 
 Create **`aide/.env`** (gitignored) with at least:
@@ -76,33 +87,30 @@ Optional overrides used elsewhere in the codebase:
 
 `src/util/openai.py` and several scripts call `load_dotenv()` so running from `aide/` picks up `.env` automatically.
 
-**External tools** for preprocessing: `ffmpeg`, `yt-dlp`, and Python deps (`openai`, `pydantic`, `pandas`, `python-dotenv`, etc.).
+The Python packages, including `yt-dlp`, are installed from `requirements.txt`. The system `ffmpeg` executable must be installed separately.
 
-## Student assignment list
+## Input directory
 
-Submissions are driven by a **CSV** with columns:
+The `in/` directory contains the raw student submissions. Each immediate child directory represents one student, and its name becomes the alias used throughout preprocessing and evaluation:
 
-| Column | Purpose |
-|--------|---------|
-| `email` | Student email; alias = local-part before `@` |
-| `link` | YouTube (or compatible) video URL |
-| `true_score` | Instructor reference score (for analysis only; not used by `evaluate_class.py`) |
-
-Example shape (values illustrative):
-
-```csv
-email,link,true_score
-student1@university.edu, https://www.youtube.com/watch?v=..., 85
-student2@university.edu, https://youtu.be/..., 90
+```text
+in/
+├── student1/
+│   ├── submission.mp4
+│   └── workbook.xlsx
+└── student2/
+    └── final-submission.xlsm
 ```
 
-**Privacy:** Real class lists with student emails and scores are **not** published in the public repository. `.gitignore` excludes `student-responses/`. Maintain your CSV locally (e.g. `student-responses/gsu-student-sumprod-video-list.csv`) and point `evaluate_class.py` at your copy.
+Files may also be organized in nested directories beneath an alias; AIDE searches them recursively. Supported spreadsheet extensions are `.xlsx`, `.xlsm`, `.xltx`, and `.xltm`. Supported video extensions are `.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`, and `.webm`. Unsupported files are logged and skipped.
+
+Set `sheet_name` in `evaluate_class.py` to the worksheet AIDE should process. The `in/` directory is gitignored because submissions may contain private student data; do not commit its contents.
 
 ## Outputs (local, gitignored)
 
 | Path | Contents |
 |------|----------|
-| `out/preprocess/<alias>/` | `transcript.txt`, `frames/`, `frames_summary.json` |
+| `out/preprocess/<alias>/<artifact-name>/` | Preprocessed spreadsheet metadata or video transcript, frames, and frame summaries |
 | `out/results/<alias>.json` | Per-category leaf results and aggregation |
 | `out/results/class_results.csv` | `alias`, `score` for completed runs |
 

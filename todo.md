@@ -52,6 +52,8 @@ DONE
     - Initial design made
     - Fix the autograder not being about to see all of the charts, like trendlines and r^2 values. Maybe pass the entire metadata into the llm
 
+- Add requirements.txt
+
 
 OPTIONS FOR IMPROVEMENT
 ===
@@ -68,7 +70,6 @@ OPTIONS FOR IMPROVEMENT
 - Try making the angel/devil (positive/negative) evaluation (idea from Parker, described in my notes)
 
 - Create a Docker container
-- Add requirements.txt
 
 - Parallelize/multithread for speedup
     - Also look into using AsyncOpenAI for higher concurrency
