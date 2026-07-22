@@ -128,7 +128,7 @@
                     "description": "Set the Trendline type to be Linear and forecast forward for 20 periods."
                 },
                 {
-                    "description": "Label the line chart with the linear forecast trendlines as “Linear Trends”."
+                    "description": "Label the line chart with the linear forecast trendlines as “Linear Trends”, so something similar that conveys the same meaning."
                 }
             ],
             "scoring_instructions": "If the criteria is met, awarded full points. If some of the criteria is not met, deduct partial points. If no criteria is met, award no points."
@@ -141,7 +141,7 @@
                     "description": "Duplicate your chart and modify the second chart to show polynomial (order 2) forecast trendlines for both data series (AMZN and WMT)."
                 },
                 {
-                    "description": "Label the line chart with polynomial (order 2) forecast trendlines as “non-Linear Trends”."
+                    "description": "Label the line chart with polynomial (order 2) forecast trendlines as “non-Linear Trends”, so something similar that conveys the same meaning."
                 },
                 {
                     "description": "Adjust chart positions so both the linear and polynomial trendline charts are visible on the screen at the same time."

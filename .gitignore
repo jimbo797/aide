@@ -5,6 +5,11 @@ __pycache__/
 
 in/
 out/
+
 old-runs/
+carloan-in/
+carloan-out/
+forecast-in/
+forecast-out/
 
 student-responses/
