@@ -24,6 +24,7 @@ from src.util import log
 
 AIDE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_PREPROCESS_DIR = AIDE_DIR / "preprocess-test"
+DEFAULT_MAX_EVIDENCE_ITERATIONS = 3
 
 LeafVerdict = Literal["met", "not_met", "undetermined"]
 
@@ -100,6 +101,16 @@ def _default_model() -> str:
     )
 
 
+def _default_max_evidence_iterations() -> int:
+    raw = (os.environ.get("OPENAI_EVAL_LEAF_MAX_ITERS") or "").strip()
+    if not raw:
+        return DEFAULT_MAX_EVIDENCE_ITERATIONS
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return DEFAULT_MAX_EVIDENCE_ITERATIONS
+
+
 def _structured_completion(
     client: OpenAI,
     *,
@@ -143,6 +154,10 @@ def _plan_tools(
     model: str,
     leaf: RubricCriteria,
     ctx: SubmissionContext,
+    iteration: int = 1,
+    max_iterations: int = DEFAULT_MAX_EVIDENCE_ITERATIONS,
+    prior_tool_results: list[dict[str, Any]] | None = None,
+    prior_eval_plan: EvalPlan | None = None,
 ) -> ToolPlan:
     tools = available_tools(ctx)
     tool_docs = tool_schemas_for_context(ctx)
@@ -156,13 +171,36 @@ def _plan_tools(
             "(none — no preprocessed transcript, frame summaries, metadata, or excel content found for this submission)"
         )
 
+    prior_blob = ""
+    if prior_tool_results or prior_eval_plan is not None:
+        prior_payload: dict[str, Any] = {
+            "prior_tool_results": prior_tool_results or [],
+        }
+        if prior_eval_plan is not None:
+            prior_payload["prior_evaluation_notes"] = prior_eval_plan.model_dump()
+        prior_blob = (
+            "\n\nEvidence gathered so far (do not repeat identical tool calls; "
+            "only plan additional calls that fill gaps):\n"
+            f"{json.dumps(prior_payload, ensure_ascii=False, indent=2)}\n"
+        )
+
+    follow_up_hint = ""
+    if iteration > 1:
+        follow_up_hint = (
+            "This is a follow-up evidence round. Prefer deeper reads of promising "
+            "items already listed (e.g. read_frame_summaries after list_frame_summaries). "
+            "If nothing useful remains, return an empty calls list.\n\n"
+        )
+
     messages = [
         {
             "role": "system",
             "content": (
                 "You are planning evidence gathering for a single rubric criterion. "
                 "Choose only tools from the available list. Prefer targeted searches over "
-                "reading entire transcripts when the criterion mentions specific concepts."
+                "reading entire transcripts when the criterion mentions specific concepts. "
+                "Evidence gathering may take multiple plan→execute rounds; plan only the "
+                "calls needed for this round."
             ),
         },
         {
@@ -170,8 +208,11 @@ def _plan_tools(
             "content": (
                 f"Criterion:\n{leaf.description}\n\n"
                 f"Submission alias: {ctx.alias}\n"
-                f"Preprocess directory: {ctx.preprocess_dir}\n\n"
-                f"Available tools:\n{tool_list}\n\n"
+                f"Preprocess directory: {ctx.preprocess_dir}\n"
+                f"Evidence round: {iteration} of {max_iterations}\n\n"
+                f"{follow_up_hint}"
+                f"Available tools:\n{tool_list}"
+                f"{prior_blob}\n"
                 "Plan which tools to call and with what arguments. "
                 "Do not evaluate yet — only plan evidence collection."
             ),
@@ -217,25 +258,37 @@ def _plan_evaluation(
     leaf: RubricCriteria,
     tool_plan: ToolPlan,
     tool_results: list[dict[str, Any]],
+    iteration: int = 1,
+    max_iterations: int = DEFAULT_MAX_EVIDENCE_ITERATIONS,
 ) -> EvalPlan:
     evidence_blob = json.dumps(
-        {"tool_plan": tool_plan.model_dump(), "tool_results": tool_results},
+        {
+            "latest_tool_plan": tool_plan.model_dump(),
+            "all_tool_results": tool_results,
+        },
         ensure_ascii=False,
         indent=2,
     )
+    more_rounds = iteration < max_iterations
     messages = [
         {
             "role": "system",
             "content": (
                 "You are a fair grader preparing to judge one atomic rubric criterion. "
                 "Review the evidence from tools and explain how it bears on the criterion. "
-                "Do not output a final verdict yet."
+                "Do not output a final verdict yet. "
+                "Set sufficient_to_judge to true only if the evidence is enough to decide "
+                "met or not_met. If key details are still missing (for example only frame "
+                "previews were listed and full frame annotations were not read), set "
+                "sufficient_to_judge to false and name what should be gathered next."
             ),
         },
         {
             "role": "user",
             "content": (
                 f"Criterion:\n{leaf.description}\n\n"
+                f"Evidence round: {iteration} of {max_iterations}\n"
+                f"Another evidence round available after this: {more_rounds}\n\n"
                 f"Evidence from tools:\n{evidence_blob}\n\n"
                 "Explain how you would evaluate the student against this criterion "
                 "based on the evidence. Say whether you have enough information to decide."
@@ -293,14 +346,21 @@ def eval_leaf(
     *,
     preprocess_dir: Path | str | None = None,
     model: str | None = None,
+    max_evidence_iterations: int | None = None,
 ) -> dict[str, Any]:
     """
     Evaluate one rubric leaf against a preprocessed student submission.
 
-    Phases:
+    Iterates plan→execute evidence rounds (each with its own tool plan and
+    execution), then judges sufficiency after each round. Stops early when
+    evidence is sufficient or a follow-up plans no further tool calls.
+
+    Phases per evidence round:
     1. Plan which evidence tools to use for this criterion.
     2. Execute those tools against transcript / frame-summary / excel artifacts.
-    3. Plan how to judge the criterion from the tool results.
+    3. Assess whether the accumulated evidence is enough to judge.
+
+    After the loop:
     4. Output met | not_met | undetermined with evidence.
     """
 
@@ -311,12 +371,19 @@ def eval_leaf(
     ctx = SubmissionContext.load(submission_alias, pdir)
     model_name = model or _default_model()
     client = OpenAIClient().client
+    max_iters = (
+        max(1, max_evidence_iterations)
+        if max_evidence_iterations is not None
+        else _default_max_evidence_iterations()
+    )
 
-    # log(submission_alias, "Planning tools")
-    tool_plan = _plan_tools(client, model=model_name, leaf=leaf, ctx=ctx)
-
-    # log(submission_alias, "Executing tools")
-    tool_results = _execute_tool_plan(ctx, tool_plan)
+    iterations: list[dict[str, Any]] = []
+    all_tool_results: list[dict[str, Any]] = []
+    tool_plan = ToolPlan(reasoning="No tools planned.", calls=[])
+    eval_plan = EvalPlan(
+        reasoning="No evaluation planned yet.",
+        sufficient_to_judge=False,
+    )
 
     if not available_tools(ctx):
         eval_plan = EvalPlan(
@@ -332,21 +399,69 @@ def eval_leaf(
             reasoning="Missing preprocess artifacts for this submission alias.",
         )
     else:
-        # log(submission_alias, "Planning evaluation")
-        eval_plan = _plan_evaluation(
-            client,
-            model=model_name,
-            leaf=leaf,
-            tool_plan=tool_plan,
-            tool_results=tool_results,
-        )
-        # log(submission_alias, "Evaluating")
+        for iteration in range(1, max_iters + 1):
+            tool_plan = _plan_tools(
+                client,
+                model=model_name,
+                leaf=leaf,
+                ctx=ctx,
+                iteration=iteration,
+                max_iterations=max_iters,
+                prior_tool_results=all_tool_results or None,
+                prior_eval_plan=eval_plan if iteration > 1 else None,
+            )
+
+            if iteration > 1 and not tool_plan.calls:
+                iterations.append(
+                    {
+                        "iteration": iteration,
+                        "tool_plan": tool_plan.model_dump(),
+                        "tool_results": [],
+                        "eval_plan": eval_plan.model_dump(),
+                        "stopped_reason": "no_additional_tools_planned",
+                    }
+                )
+                break
+
+            round_results = _execute_tool_plan(ctx, tool_plan)
+            all_tool_results.extend(round_results)
+
+            eval_plan = _plan_evaluation(
+                client,
+                model=model_name,
+                leaf=leaf,
+                tool_plan=tool_plan,
+                tool_results=all_tool_results,
+                iteration=iteration,
+                max_iterations=max_iters,
+            )
+
+            round_record: dict[str, Any] = {
+                "iteration": iteration,
+                "tool_plan": tool_plan.model_dump(),
+                "tool_results": round_results,
+                "eval_plan": eval_plan.model_dump(),
+            }
+            if eval_plan.sufficient_to_judge:
+                round_record["stopped_reason"] = "sufficient_to_judge"
+                iterations.append(round_record)
+                break
+
+            if not tool_plan.calls:
+                round_record["stopped_reason"] = "no_tools_planned"
+                iterations.append(round_record)
+                break
+
+            if iteration == max_iters:
+                round_record["stopped_reason"] = "max_iterations"
+            iterations.append(round_record)
+
         verdict = _determine_verdict(
             client,
             model=model_name,
             leaf=leaf,
             eval_plan=eval_plan,
-            tool_results=tool_results,
+            tool_results=all_tool_results,
         )
 
     return {
@@ -356,8 +471,10 @@ def eval_leaf(
         "preprocess_dir": str(pdir),
         "verdict": verdict.verdict,
         "evidence": verdict.evidence,
+        # Backward-compatible flat fields: last plan + all accumulated results.
         "tool_plan": tool_plan.model_dump(),
-        "tool_results": tool_results,
+        "tool_results": all_tool_results,
         "eval_plan": eval_plan.model_dump(),
+        "iterations": iterations,
         "verdict_reasoning": verdict.reasoning,
     }

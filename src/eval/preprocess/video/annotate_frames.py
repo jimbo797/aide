@@ -57,8 +57,14 @@ cell values you can read in a clear grid or row-wise form. Merge ranges if shown
 only when you are confident; otherwise paraphrase and mark uncertainty.
 4. For math: use plain text or Unicode; describe notation if ambiguous.
 5. Describe layout spatially when it helps (e.g. “left pane: file tree; right: editor”).
-6. If text is blurry or cropped, say exactly what is uncertain. Never invent values you cannot see.
-7. Respond with a single JSON object matching the schema described in the user message — no markdown \
+6. Always note solid bars (black or colored) along the edges of the frame — letterboxing or \
+pillarboxing. Left/right bars (pillarbox) usually mean portrait-oriented content is embedded in a \
+landscape canvas. Top/bottom bars (letterbox) usually mean landscape-oriented content is embedded \
+in a taller/portrait canvas. In spatial_layout_notes, report which edges have bars, roughly how \
+wide they are relative to the frame, and whether the active content region itself appears portrait \
+or landscape. If there are no edge bars, say so explicitly.
+7. If text is blurry or cropped, say exactly what is uncertain. Never invent values you cannot see.
+8. Respond with a single JSON object matching the schema described in the user message — no markdown \
 outside the JSON."""
 
 
@@ -95,7 +101,11 @@ class FrameVisionAnnotation(BaseModel):
     )
     spatial_layout_notes: str = Field(
         default="",
-        description="Where major elements sit (e.g. top banner, bottom taskbar, split panes).",
+        description=(
+            "Where major elements sit (e.g. top banner, bottom taskbar, split panes). "
+            "Also note edge bars (letterbox top/bottom or pillarbox left/right) and whether "
+            "the active content region looks portrait or landscape; say if no edge bars."
+        ),
     )
     illegible_or_uncertain: str = Field(
         default="",
