@@ -1,23 +1,14 @@
 TO DO
 ===
 
-- Look at biggest discrepencies between actual and AIDE scores, and plan how to decrease these differences
-    - Video quality
-    - Navigation
-
-- Add additional frame sampling
-
-- Do a column-by-column analysis for score differences and undetermined counts
-
 - Fix video quality on android player clients. 
     - Try to use "tv" instead
-    - Pass to Parker if can't fix
 
 - Re-implement automatic rubric tree construction
     - Attach assignment instructions to the tree
     - Attach eval examples to the tree
 
-- Strategize about how to make the autograder better without spreadsheet tool
+- Strategize about how to make the autograder better on videos without spreadsheet tool
 
 
 DONE
@@ -43,6 +34,8 @@ DONE
 - Lower frame difference threshold for choosing key frames to make sure all important frames are captured
     - Already lowered from 0.32 to 0.1
 
+- Add additional frequent frame sampling
+
 - Manually make the spring rubrics for car loan and forecast
 
 - Create a student metadata file, which includes all the artifacts and metadata-level information about them.
@@ -54,13 +47,14 @@ DONE
 
 - Add requirements.txt
 
-
-OPTIONS FOR IMPROVEMENT
-===
 - Add cost analysis for each run
     - which models are being used
     - how many tokens are being used
     - how much time it takes
+
+
+OPTIONS FOR IMPROVEMENT
+===
 
 - Add recalculating and averaging category scores using Olivia's strategy for consistency and confidence scores
 
@@ -77,3 +71,4 @@ OPTIONS FOR IMPROVEMENT
 
 - Use "smarter" models that are better at complex reasoning
     - OpenAI o1/o3, DeepSeek-R1, and Claude 3.7 Sonnet
+- Use cheaper models for less critical tasks

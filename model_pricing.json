@@ -1,0 +1,18 @@
+{
+    "gpt-5.5": {
+        "input": 5.00,
+        "output": 30.00
+    },
+    "gpt-5.5-pro": {
+        "input": 30.00,
+        "output": 180.00
+    },
+    "gpt-4o-transcribe": {
+        "input": 2.50,
+        "output": 10.00
+    },
+    "gpt-4o": {
+        "input": 2.50,
+        "output": 10.00
+    }
+}

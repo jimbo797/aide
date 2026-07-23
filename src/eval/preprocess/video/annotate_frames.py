@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Iterator, List
 from openai import OpenAI
 from src.util.openai import OpenAIClient
+from src.util.token_usage import record_chat_usage
 from pydantic import BaseModel, Field, ValidationError
 
 from .extract_frames import ExtractedFrame
@@ -237,6 +238,7 @@ def _vision_json_completion(
         if max_out is not None:
             kwargs["max_completion_tokens"] = max_out
         resp = client.chat.completions.create(**kwargs)
+    record_chat_usage(resp, model=model)
     choice0 = resp.choices[0]
     content = choice0.message.content
     if not content:

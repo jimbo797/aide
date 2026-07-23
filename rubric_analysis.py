@@ -1,6 +1,6 @@
 """Suggest reasonable rubric leniency tweaks from class evaluation results.
 
-Uses the same rubric + ``out/results/*.json`` outputs produced by
+Uses the same rubric + ``out/results/<alias>/results.json`` outputs produced by
 ``evaluate_class`` / ``eval_submission``. Flags criteria that fail often in a
 way that looks stricter than the learning goal requires, without watering
 criteria down into trivial checks.
@@ -140,8 +140,11 @@ def load_matching_results(
     rubric_criteria = {leaf.description for cat in rubric.categories for leaf in cat.criteria}
     matched: dict[str, list[dict[str, Any]]] = {}
 
-    for path in sorted(results_dir.glob("*.json")):
-        if alias_filter is not None and path.stem not in alias_filter:
+    for student_dir in sorted(path for path in results_dir.iterdir() if path.is_dir()):
+        if alias_filter is not None and student_dir.name not in alias_filter:
+            continue
+        path = student_dir / "results.json"
+        if not path.is_file():
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -151,7 +154,7 @@ def load_matching_results(
             continue
         if _result_overlap(data, rubric_criteria) < min_overlap:
             continue
-        matched[path.stem] = data
+        matched[student_dir.name] = data
 
     return matched
 
@@ -285,7 +288,7 @@ def suggest_rubric_leniency(
     rubric:
         The ``Rubric`` used by ``evaluate_class``.
     results_dir:
-        Directory of per-student ``{alias}.json`` eval outputs (default:
+        Directory of per-student ``<alias>/results.json`` eval outputs (default:
         ``out/results``).
     model:
         OpenAI model name; defaults to the same env / leaf-eval default.

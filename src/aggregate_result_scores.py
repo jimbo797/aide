@@ -7,11 +7,12 @@ import os
 
 def aggregate_result_scores():
     result_dir = Path("out/results")
-    result_files = result_dir.glob("*.json")
-
-    results= []
-    for result_file in result_files:
-        alias = result_file.stem
+    results = []
+    for student_dir in sorted(path for path in result_dir.iterdir() if path.is_dir()):
+        result_file = student_dir / "results.json"
+        if not result_file.is_file():
+            continue
+        alias = student_dir.name
         total_points = 0
         with open(result_file, "r") as f:
             result = json.load(f)

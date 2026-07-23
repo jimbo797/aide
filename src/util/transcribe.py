@@ -1,13 +1,18 @@
 import os
 
 from src.util.openai import OpenAIClient
+from src.util.token_usage import record_chat_usage
+
+TRANSCRIBE_MODEL = "gpt-4o-transcribe"
+
 
 def transcribe(audio_file):
     client = OpenAIClient().client
     transcription = client.audio.transcriptions.create(
-        model="gpt-4o-transcribe", 
-        file=audio_file
+        model=TRANSCRIBE_MODEL,
+        file=audio_file,
     )
+    record_chat_usage(transcription, model=TRANSCRIBE_MODEL)
     return transcription.text
 
 if __name__ == "__main__":

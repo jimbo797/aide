@@ -20,6 +20,7 @@ from src.eval.eval_leaf_tools import (
 )
 from src.rubric.rubric_types import RubricCriteria
 from src.util.openai import OpenAIClient
+from src.util.token_usage import record_chat_usage
 from src.util import log
 
 AIDE_DIR = Path(__file__).resolve().parents[2]
@@ -124,6 +125,7 @@ def _structured_completion(
             messages=messages,
             response_format=response_model,
         )
+        record_chat_usage(resp, model=model)
         parsed = resp.choices[0].message.parsed
         if parsed is not None:
             return parsed
@@ -144,6 +146,7 @@ def _structured_completion(
         messages=json_messages,
         response_format={"type": "json_object"},
     )
+    record_chat_usage(resp, model=model)
     raw = resp.choices[0].message.content or "{}"
     return response_model.model_validate_json(raw)
 

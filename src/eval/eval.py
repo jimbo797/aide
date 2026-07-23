@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from src.eval.eval_leaf import _default_model, _structured_completion, eval_leaf
 from src.rubric.rubric_types import Rubric, RubricCategory, RubricCriteria
+from src.util.token_usage import track_token_usage
 
 DEFAULT_MAX_LEAF_CONCURRENCY = 4
 
@@ -152,7 +153,7 @@ def eval_submission(
     output_dir: Path | str | None = None,
     model: str | None = None,
     max_leaf_concurrency: int = DEFAULT_MAX_LEAF_CONCURRENCY,
-) -> tuple[float, list[dict[str, Any]]]:
+) -> tuple[float, list[dict[str, Any]], dict[str, Any]]:
     """
     Evaluate every leaf, aggregate each category via OpenAI, and return total score.
 
@@ -162,48 +163,55 @@ def eval_submission(
 
     Total score assumes category ``weight`` values are percentage points (e.g. 25 = 25%)
     and each category ``score`` is in [0, 1].
+
+    Returns ``(final_score, final_results, token_costs)``. When ``output_dir`` is set,
+    full results are written to ``output_dir/<submission_alias>/results.json``.
     """
-    leaf_rows = asyncio.run(
-        _eval_leaves_concurrent(
-            submission_alias,
-            rubric,
-            preprocess_dir=preprocess_dir,
-            model=model,
-            max_leaf_concurrency=max_leaf_concurrency,
-        )
-    )
-
-    by_category: dict[int, list[tuple[int, dict[str, Any]]]] = {}
-    for cat_i, leaf_i, result in leaf_rows:
-        by_category.setdefault(cat_i, []).append((leaf_i, result))
-
-    final_score = 0.0
-    final_results: list[dict[str, Any]] = []
-
-    for cat_i, category in enumerate(rubric.categories):
-        category_results = [
-            result for _, result in sorted(by_category.get(cat_i, []), key=lambda x: x[0])
-        ]
-        aggregation = aggregate_category_results(
-            category_results, category, model=model
-        )
-        category_points = aggregation["score"] * category.weight
-        final_score += category_points
-
-        final_results.append(
-            {
-                "category": category.description,
-                "weight": category.weight,
-                "leaf_results": category_results,
-                "aggregation": aggregation,
-                "category_points": category_points,
-            }
+    with track_token_usage(submission_alias) as usage:
+        leaf_rows = asyncio.run(
+            _eval_leaves_concurrent(
+                submission_alias,
+                rubric,
+                preprocess_dir=preprocess_dir,
+                model=model,
+                max_leaf_concurrency=max_leaf_concurrency,
+            )
         )
 
-    if output_dir:
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with open(output_dir / f"{submission_alias}.json", "w") as f:
-            json.dump(final_results, f, indent=2)
+        by_category: dict[int, list[tuple[int, dict[str, Any]]]] = {}
+        for cat_i, leaf_i, result in leaf_rows:
+            by_category.setdefault(cat_i, []).append((leaf_i, result))
 
-    return final_score, final_results
+        final_score = 0.0
+        final_results: list[dict[str, Any]] = []
+
+        for cat_i, category in enumerate(rubric.categories):
+            category_results = [
+                result for _, result in sorted(by_category.get(cat_i, []), key=lambda x: x[0])
+            ]
+            aggregation = aggregate_category_results(
+                category_results, category, model=model
+            )
+            category_points = aggregation["score"] * category.weight
+            final_score += category_points
+
+            final_results.append(
+                {
+                    "category": category.description,
+                    "weight": category.weight,
+                    "leaf_results": category_results,
+                    "aggregation": aggregation,
+                    "category_points": category_points,
+                }
+            )
+
+        token_costs = usage.to_dict()
+
+        if output_dir:
+            output_dir = Path(output_dir)
+            student_out = output_dir / submission_alias
+            student_out.mkdir(parents=True, exist_ok=True)
+            with open(student_out / "results.json", "w") as f:
+                json.dump(final_results, f, indent=2)
+
+    return final_score, final_results, token_costs
