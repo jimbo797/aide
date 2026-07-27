@@ -1,6 +1,8 @@
 TO DO
 ===
 
+- tool for TAs to go back and modify scores easily
+
 - Fix video quality on android player clients. 
     - Try to use "tv" instead
 
@@ -51,6 +53,8 @@ DONE
     - which models are being used
     - how many tokens are being used
     - how much time it takes
+
+- tool that outputs points lost per student and a concise reason why
 
 
 OPTIONS FOR IMPROVEMENT
