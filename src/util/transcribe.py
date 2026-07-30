@@ -3,7 +3,7 @@ import os
 from src.util.openai import OpenAIClient
 from src.util.token_usage import record_chat_usage
 
-TRANSCRIBE_MODEL = "gpt-4o-transcribe"
+TRANSCRIBE_MODEL = "gpt-transcribe"
 
 
 def transcribe(audio_file):

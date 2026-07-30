@@ -76,3 +76,6 @@ OPTIONS FOR IMPROVEMENT
 - Use "smarter" models that are better at complex reasoning
     - OpenAI o1/o3, DeepSeek-R1, and Claude 3.7 Sonnet
 - Use cheaper models for less critical tasks
+
+- Automatically query for model pricing instead of hard-coding values. 
+    - Some but not all model prices are on https://www.llm-prices.com/, and the raw data is at https://www.llm-prices.com/current-v1.json 

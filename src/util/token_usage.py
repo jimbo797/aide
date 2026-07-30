@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import requests
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import timedelta
@@ -19,6 +20,9 @@ _PRICING_PATH = Path(__file__).resolve().parents[2] / "model_pricing.json"
 def load_model_pricing() -> dict[str, dict[str, float]]:
     with open(_PRICING_PATH) as f:
         return json.load(f)
+    # res = requests.get("https://www.llm-prices.com/current-v1.json", timeout=100)
+    # res.raise_for_status()
+    # return {m["id"]: m for m in res.json()["prices"]}
 
 
 def tokens_cost_usd(
