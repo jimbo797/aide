@@ -1,0 +1,1 @@
+This directory contains the remainder of the rubric reconstruction portion of AIDE, which attempts to take rubrics in more natural language structures to rubrics usable in AIDE.
