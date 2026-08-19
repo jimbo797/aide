@@ -14,6 +14,9 @@ ToolName = Literal[
     "read_frame_summaries",
     "read_metadata",
     "read_excel",
+    "read_txt",
+    "list_sources",
+    "read_source",
 ]
 
 TOOL_NAMES: tuple[ToolName, ...] = (
@@ -23,7 +26,13 @@ TOOL_NAMES: tuple[ToolName, ...] = (
     "read_frame_summaries",
     "read_metadata",
     "read_excel",
+    "read_txt",
+    "list_sources",
+    "read_source",
 )
+
+# Reference materials under ``<submissions_dir>/<alias>/sources/`` — not student work.
+SOURCES_DIRNAME = "sources"
 
 
 @dataclass
@@ -34,14 +43,23 @@ class SubmissionContext:
     frame_summaries: dict[str, list[dict[str, Any]]]
     metadata: dict[str, dict[str, Any]]
     excel: dict[str, dict[str, Any]]
+    txt: dict[str, str]
+    sources: dict[str, str]
 
     @classmethod
-    def load(cls, alias: str, preprocess_dir: Path) -> SubmissionContext:
+    def load(
+        cls,
+        alias: str,
+        preprocess_dir: Path,
+        submissions_dir: Path | None = None,
+    ) -> SubmissionContext:
         base = preprocess_dir / alias
         transcript: dict[str, str] = {}
         frame_summaries: dict[str, list[dict[str, Any]]] = {}
         metadata: dict[str, dict[str, Any]] = {}
         excel: dict[str, dict[str, Any]] = {}
+        txt: dict[str, str] = {}
+        sources: dict[str, str] = {}
 
         def artifact_name(path: Path) -> str:
             relative_parent = path.parent.relative_to(base)
@@ -68,6 +86,21 @@ class SubmissionContext:
                 if isinstance(raw, dict):
                     excel[artifact_name(path)] = raw
 
+            for path in sorted(base.rglob("content.txt")):
+                txt[artifact_name(path)] = path.read_text(encoding="utf-8")
+
+        if submissions_dir is not None:
+            sources_dir = submissions_dir / alias / SOURCES_DIRNAME
+            if sources_dir.is_dir():
+                for path in sorted(sources_dir.rglob("*")):
+                    if not path.is_file():
+                        continue
+                    name = str(path.relative_to(sources_dir))
+                    try:
+                        sources[name] = path.read_text(encoding="utf-8")
+                    except UnicodeDecodeError:
+                        continue
+
         return cls(
             alias=alias,
             preprocess_dir=base,
@@ -75,6 +108,8 @@ class SubmissionContext:
             frame_summaries=frame_summaries,
             metadata=metadata,
             excel=excel,
+            txt=txt,
+            sources=sources,
         )
 
 
@@ -88,6 +123,10 @@ def available_tools(ctx: SubmissionContext) -> list[ToolName]:
         names.extend(["read_metadata"])
     if ctx.excel:
         names.extend(["read_excel"])
+    if ctx.txt:
+        names.extend(["read_txt"])
+    if ctx.sources:
+        names.extend(["list_sources", "read_source"])
     return names
 
 
@@ -97,6 +136,17 @@ def _artifact_property(artifacts: dict[str, Any]) -> dict[str, Any]:
         "enum": sorted(artifacts),
         "description": (
             "Artifact directory to read. May be omitted when only one is available."
+        ),
+    }
+
+
+def _source_property(sources: dict[str, str]) -> dict[str, Any]:
+    return {
+        "type": "string",
+        "enum": sorted(sources),
+        "description": (
+            "Reference source filename under sources/ (NOT student work). "
+            "May be omitted when only one source is available."
         ),
     }
 
@@ -282,6 +332,86 @@ def tool_schemas_for_context(ctx: SubmissionContext) -> list[dict[str, Any]]:
                     },
                 },
             }
+        )
+    if ctx.txt:
+        schemas.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": "read_txt",
+                    "description": (
+                        "Read a slice of a student's submitted text file "
+                        "(UTF-8 text by character offset)."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "artifact": _artifact_property(ctx.txt),
+                            "offset": {
+                                "type": "integer",
+                                "description": "0-based character offset (default 0).",
+                                "default": 0,
+                            },
+                            "max_chars": {
+                                "type": "integer",
+                                "description": "Maximum characters to return (default 8000).",
+                                "default": 8000,
+                            },
+                        },
+                        "required": ["artifact"] if len(ctx.txt) > 1 else [],
+                    },
+                },
+            }
+        )
+    if ctx.sources:
+        schemas.extend(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "list_sources",
+                        "description": (
+                            "List assignment reference source documents under sources/ "
+                            "(filename, size, short preview). These are NOT part of the "
+                            "student's submission — use them only as external context "
+                            "(e.g. to check citations or compare claimed facts)."
+                        ),
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "read_source",
+                        "description": (
+                            "Read a slice of an assignment reference source document "
+                            "(UTF-8 text by character offset). Content is NOT student work; "
+                            "do not treat it as evidence of what the student submitted."
+                        ),
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "source": _source_property(ctx.sources),
+                                "offset": {
+                                    "type": "integer",
+                                    "description": "0-based character offset (default 0).",
+                                    "default": 0,
+                                },
+                                "max_chars": {
+                                    "type": "integer",
+                                    "description": "Maximum characters to return (default 8000).",
+                                    "default": 8000,
+                                },
+                            },
+                            "required": ["source"] if len(ctx.sources) > 1 else [],
+                        },
+                    },
+                },
+            ]
         )
     return schemas
 
@@ -523,5 +653,97 @@ def dispatch_tool(ctx: SubmissionContext, name: str, args: dict[str, Any]) -> di
             else:
                 result["charts"] = []
         return result
+
+    if name == "read_txt":
+        if not ctx.txt:
+            return {"ok": False, "error": "No text file available for this submission."}
+        artifact, text, error = _select_artifact(ctx.txt, args, "text")
+        if error is not None:
+            return error
+        assert isinstance(text, str)
+        offset = int(args.get("offset") or 0)
+        max_chars = int(args.get("max_chars") or 8000)
+        if offset < 0 or offset > len(text):
+            offset = 0
+        chunk = text[offset : offset + max_chars]
+        return {
+            "ok": True,
+            "artifact": artifact,
+            "offset": offset,
+            "returned_chars": len(chunk),
+            "total_chars": len(text),
+            "truncated": offset + len(chunk) < len(text),
+            "text": chunk,
+        }
+
+    if name == "list_sources":
+        if not ctx.sources:
+            return {
+                "ok": False,
+                "error": "No reference sources available for this submission alias.",
+            }
+        items: list[dict[str, Any]] = []
+        for source_name, text in sorted(ctx.sources.items()):
+            preview = text[:280].replace("\n", " ")
+            if len(text) > 280:
+                preview = preview[:277] + "..."
+            items.append(
+                {
+                    "source": source_name,
+                    "total_chars": len(text),
+                    "preview": preview,
+                    "is_student_submission": False,
+                }
+            )
+        return {
+            "ok": True,
+            "note": (
+                "These are assignment reference materials, not part of the "
+                "student's submission."
+            ),
+            "total": len(items),
+            "sources": items,
+        }
+
+    if name == "read_source":
+        if not ctx.sources:
+            return {
+                "ok": False,
+                "error": "No reference sources available for this submission alias.",
+            }
+        # Reuse artifact selection keyed as ``source`` rather than ``artifact``.
+        select_args = dict(args)
+        if "source" in select_args and "artifact" not in select_args:
+            select_args["artifact"] = select_args["source"]
+        source_name, text, error = _select_artifact(
+            ctx.sources, select_args, "source"
+        )
+        if error is not None:
+            # Normalize error key name for callers.
+            if "available_artifacts" in error:
+                error = {
+                    **error,
+                    "available_sources": error.pop("available_artifacts"),
+                }
+            return error
+        assert isinstance(text, str)
+        offset = int(args.get("offset") or 0)
+        max_chars = int(args.get("max_chars") or 8000)
+        if offset < 0 or offset > len(text):
+            offset = 0
+        chunk = text[offset : offset + max_chars]
+        return {
+            "ok": True,
+            "source": source_name,
+            "is_student_submission": False,
+            "note": (
+                "This text is an assignment reference source, not student work."
+            ),
+            "offset": offset,
+            "returned_chars": len(chunk),
+            "total_chars": len(text),
+            "truncated": offset + len(chunk) < len(text),
+            "text": chunk,
+        }
 
     return {"ok": False, "error": f"Unknown tool: {name}"}

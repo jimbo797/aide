@@ -16,6 +16,9 @@ def preprocess_video_file(
     video_path: Path,
     alias: str,
     preprocess_dir: Path,
+    *,
+    scene_threshold: float | None = 0.1,
+    sample_interval_seconds: float | None = 30.0,
 ) -> None:
     """Preprocess a local video without deleting the source file."""
     video_dir = preprocess_dir / alias
@@ -37,11 +40,11 @@ def preprocess_video_file(
     frames_dir.mkdir(parents=True, exist_ok=True)
     log(alias, "Extracting frames")
     frames = extact_important_frames(
-        video_path, 
-        frames_dir, 
-        scene_threshold=0.1, 
+        video_path,
+        frames_dir,
+        scene_threshold=scene_threshold,
         scale_max_width=1080,
-        sample_interval_seconds=30,
+        sample_interval_seconds=sample_interval_seconds,
     )
     summary_path = preprocess_dir / alias / "frames_summary.json"
     

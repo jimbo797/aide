@@ -116,8 +116,10 @@ async def _eval_leaves_concurrent(
     rubric: Rubric,
     *,
     preprocess_dir: Path | str | None,
+    submissions_dir: Path | str | None,
     model: str | None,
     max_leaf_concurrency: int,
+    max_loop_iters: int | None = None,
 ) -> list[tuple[int, int, dict[str, Any]]]:
     """Run all leaf evals concurrently; returns (category_index, leaf_index, result)."""
     sem = asyncio.Semaphore(max(1, max_leaf_concurrency))
@@ -129,7 +131,9 @@ async def _eval_leaves_concurrent(
                 leaf,
                 submission_alias,
                 preprocess_dir=preprocess_dir,
+                submissions_dir=submissions_dir,
                 model=model,
+                max_evidence_iterations=max_loop_iters,
             )
             result["id"] = leaf_i
             return cat_i, leaf_i, result
@@ -150,9 +154,11 @@ def eval_submission(
     rubric: Rubric,
     *,
     preprocess_dir: Path | str | None = None,
+    submissions_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
     model: str | None = None,
     max_leaf_concurrency: int = DEFAULT_MAX_LEAF_CONCURRENCY,
+    max_loop_iters: int | None = None,
 ) -> tuple[float, list[dict[str, Any]], dict[str, Any]]:
     """
     Evaluate every leaf, aggregate each category via OpenAI, and return total score.
@@ -173,8 +179,10 @@ def eval_submission(
                 submission_alias,
                 rubric,
                 preprocess_dir=preprocess_dir,
+                submissions_dir=submissions_dir,
                 model=model,
                 max_leaf_concurrency=max_leaf_concurrency,
+                max_loop_iters=max_loop_iters,
             )
         )
 

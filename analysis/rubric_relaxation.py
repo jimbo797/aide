@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Literal
@@ -17,10 +18,13 @@ from typing import Any, Literal
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from src.eval.eval_leaf import _default_model, _structured_completion
-from src.rubric.rubric_types import Rubric
+AIDE_DIR = Path(__file__).resolve().parent.parent
+if str(AIDE_DIR) not in sys.path:
+    sys.path.insert(0, str(AIDE_DIR))
 
-AIDE_DIR = Path(__file__).resolve().parent
+from src.eval.eval_leaf import _default_model, _structured_completion  # noqa: E402
+from src.rubric.rubric_types import Rubric  # noqa: E402
+
 DEFAULT_RESULTS_DIR = AIDE_DIR / "out" / "results"
 
 ChangeTarget = Literal["criterion", "scoring_instructions", "both", "none"]
@@ -420,14 +424,16 @@ def analyze_rubric_leniency(
 
 if __name__ == "__main__":
     # Example: carloan rubric against out/results (skips forecast-only JSONs).
-    json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text(encoding="utf-8")
+    json_data = (AIDE_DIR / "rubrics" / "gsu-spring-carloan-manual.json").read_text(
+        encoding="utf-8"
+    )
     rubric = Rubric.model_validate_json(json_data)
 
     report = analyze_rubric_leniency(
         rubric,
-        results_dir=Path("out/results"),
+        results_dir=DEFAULT_RESULTS_DIR,
         model=os.environ.get("OPENAI_EVAL_AGENT_MODEL", "gpt-5.5"),
-        output_path=Path("out/results/carloan-rubric-leniency.json"),
+        output_path=DEFAULT_RESULTS_DIR / "carloan-rubric-leniency.json",
     )
 
     print(report.summary)

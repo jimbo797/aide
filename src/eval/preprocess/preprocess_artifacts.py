@@ -7,6 +7,15 @@ from src.util import log
 
 EXCEL_SUFFIXES = {".xlsx", ".xlsm", ".xltx", ".xltm"}
 VIDEO_SUFFIXES = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm"}
+TEXT_SUFFIXES = {".txt"}
+
+
+def preprocess_text_file(filepath: Path, alias: str, preprocess_dir: Path) -> None:
+    """Copy a UTF-8 text submission into ``<preprocess_dir>/<alias>/content.txt``."""
+    out_dir = preprocess_dir / alias
+    out_dir.mkdir(parents=True, exist_ok=True)
+    text = filepath.read_text(encoding="utf-8")
+    (out_dir / "content.txt").write_text(text, encoding="utf-8")
 
 
 def preprocess_artifacts(
@@ -16,6 +25,8 @@ def preprocess_artifacts(
     *,
     sheet_name: str | None = None,
     excel_password: str | None = None,
+    scene_threshold: float | None = 0.1,
+    sample_interval_seconds: float | None = 30.0,
 ) -> list[Path]:
     """Preprocess every supported artifact in ``submissions_dir / alias``.
 
@@ -38,6 +49,9 @@ def preprocess_artifacts(
     for artifact_path in artifact_paths:
         suffix = artifact_path.suffix.lower()
         relative_path = artifact_path.relative_to(submission_dir)
+        # ``sources/`` holds assignment reference materials, not student work.
+        if relative_path.parts and relative_path.parts[0] == "sources":
+            continue
         safe_relative_path = Path(
             *(part.replace(".", "-") for part in relative_path.parts)
         )
@@ -57,6 +71,15 @@ def preprocess_artifacts(
             log(alias, f"Preprocessing video: {relative_path}")
             preprocess_video_file(
                 video_path=artifact_path,
+                alias=artifact_alias,
+                preprocess_dir=preprocess_dir,
+                scene_threshold=scene_threshold,
+                sample_interval_seconds=sample_interval_seconds,
+            )
+        elif suffix in TEXT_SUFFIXES:
+            log(alias, f"Preprocessing text file: {relative_path}")
+            preprocess_text_file(
+                filepath=artifact_path,
                 alias=artifact_alias,
                 preprocess_dir=preprocess_dir,
             )

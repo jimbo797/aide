@@ -147,7 +147,7 @@ def extact_important_frames(
     video_path: Path, 
     frames_dir: Path,
     *,
-    scene_threshold: float = 0.32,
+    scene_threshold: float | None = 0.32,
     include_t0: bool = True,
     min_gap_seconds: float = 0.35,
     scale_max_width: int | None = 1280,
@@ -158,6 +158,7 @@ def extact_important_frames(
 
     Scene frames: the first frame and each frame whose ``scene`` score vs. the previous
     output frame exceeds ``scene_threshold`` (ffmpeg convention: roughly 0.25–0.45 for cuts).
+    Set ``scene_threshold`` to ``None`` to skip scene sampling.
 
     Interval frames: one frame every ``sample_interval_seconds`` (e.g. 30 → t=0, 30, 60…).
     Set ``sample_interval_seconds`` to ``None`` to skip interval sampling.
@@ -169,18 +170,24 @@ def extact_important_frames(
         raise RuntimeError("ffmpeg not found on PATH")
     if not video_path.is_file():
         raise FileNotFoundError(video_path)
+    if scene_threshold is not None and scene_threshold < 0:
+        raise ValueError("scene_threshold must be non-negative")
     if sample_interval_seconds is not None and sample_interval_seconds <= 0:
         raise ValueError("sample_interval_seconds must be positive")
 
     frames_dir.mkdir(parents=True, exist_ok=True)
 
-    frames = _extract_scene_frames(
-        video_path,
-        frames_dir,
-        scene_threshold=scene_threshold,
-        include_t0=include_t0,
-        scale_max_width=scale_max_width,
-    )
+    frames: list[ExtractedFrame] = []
+    if scene_threshold is not None:
+        frames.extend(
+            _extract_scene_frames(
+                video_path,
+                frames_dir,
+                scene_threshold=scene_threshold,
+                include_t0=include_t0,
+                scale_max_width=scale_max_width,
+            )
+        )
 
     if sample_interval_seconds is not None:
         frames.extend(

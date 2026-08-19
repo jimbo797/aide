@@ -1,20 +1,19 @@
 TO DO
 ===
 
-- tool for TAs to go back and modify scores easily
-
-- Fix video quality on android player clients. 
-    - Try to use "tv" instead
-
 - Re-implement automatic rubric tree construction
     - Attach assignment instructions to the tree
     - Attach eval examples to the tree
 
-- Strategize about how to make the autograder better on videos without spreadsheet tool
+- remove the sheet name param from evaluate_class and design a better, less intrusive method, since this is not in the spirit of generalization
+
+- add option to use models from other model providers
 
 
 DONE
 ===
+
+- Add tools to access sources
 
 - Rubric re-structure
     - tree
@@ -56,6 +55,9 @@ DONE
 
 - tool that outputs points lost per student and a concise reason why
 
+- tool for TAs to go back and modify scores easily
+
+
 
 OPTIONS FOR IMPROVEMENT
 ===
@@ -73,9 +75,9 @@ OPTIONS FOR IMPROVEMENT
     - Also look into using AsyncOpenAI for higher concurrency
     - Test OpenAI rate limiting to find out how many open queries I can have at one time
 
-- Use "smarter" models that are better at complex reasoning
-    - OpenAI o1/o3, DeepSeek-R1, and Claude 3.7 Sonnet
-- Use cheaper models for less critical tasks
+- Model specialization
+    - Use "smarter" models that are better at complex reasoning for evaluating 
+    - Use cheaper models for less critical tasks
 
 - Automatically query for model pricing instead of hard-coding values. 
     - Some but not all model prices are on https://www.llm-prices.com/, and the raw data is at https://www.llm-prices.com/current-v1.json 

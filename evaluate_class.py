@@ -9,7 +9,17 @@ from src.rubric.rubric_types import Rubric
 from src.util import log
 from src.util.token_usage import aggregate_costs, student_costs_dict, track_token_usage
 
-def evaluate_class(rubric: Rubric, in_dir: Path, preprocess_dir: Path, output_dir: Path, model: str, sheet_name: str) -> None:
+def evaluate_class(
+    rubric: Rubric,
+    in_dir: Path,
+    preprocess_dir: Path,
+    output_dir: Path,
+    model: str,
+    sheet_name: str | None = None,
+    scene_threshold: float | None = 0.1,
+    sample_interval_seconds: float | None = 30.0,
+    max_loop_iters: int | None = None,
+) -> None:
     class_results = []
     class_costs: list[dict] = []
     times_taken = []
@@ -30,11 +40,19 @@ def evaluate_class(rubric: Rubric, in_dir: Path, preprocess_dir: Path, output_di
                     submissions_dir=in_dir,
                     preprocess_dir=preprocess_dir,
                     sheet_name=sheet_name,
+                    scene_threshold=scene_threshold,
+                    sample_interval_seconds=sample_interval_seconds,
                 )
 
                 log(alias, "Evaluating")
                 score, results, token_costs = eval_submission(
-                    alias, rubric, preprocess_dir=preprocess_dir, output_dir=output_dir, model=model
+                    alias,
+                    rubric,
+                    preprocess_dir=preprocess_dir,
+                    submissions_dir=in_dir,
+                    output_dir=output_dir,
+                    model=model,
+                    max_loop_iters=max_loop_iters,
                 )
                 # Prefer the outer tracker so preprocess + eval are both included.
                 token_costs = usage.to_dict()
@@ -89,16 +107,46 @@ def evaluate_class(rubric: Rubric, in_dir: Path, preprocess_dir: Path, output_di
         )
 
 if __name__ == "__main__":
-    json_data = Path("rubrics/gsu-spring-forecast-manual.json").read_text()
-    # json_data = Path("rubrics/gsu-spring-carloan-manual.json").read_text()
+    json_data = Path("rubrics/gsu-summer-forecast.json").read_text()
+    # json_data = Path("rubrics/asap2.json").read_text()
     rubric = Rubric.model_validate_json(json_data)
+
+    # evaluate_class(
+    #     rubric=rubric, 
+    #     in_dir=Path("in"),
+    #     preprocess_dir=Path("out/preprocess"), 
+    #     output_dir=Path("out/results"),
+    #     model="gpt-5.6-terra",
+    #     max_loop_iters=3,
+    #     # sheet_name="Forecast"
+    #     # sheet_name="CarLoan"
+    #     )
 
     evaluate_class(
         rubric=rubric, 
-        in_dir=Path("in"),
-        preprocess_dir=Path("out/preprocess"), 
-        output_dir=Path("out/results"),
-        model="gpt-5.5",
-        sheet_name="Forecast"
-        # sheet_name="CarLoan"
+        in_dir=Path("old-runs/gsu-summer-in"),
+        preprocess_dir=Path("old-runs/summer9/preprocess"), 
+        output_dir=Path("old-runs/summer9/results"),
+        model="gpt-5.6-terra",
+        max_loop_iters=3
         )
+
+    # experiments = [
+    #                 (None, 30), (None, 90),
+    #     (0.1, None), (0.1, 30), (0.1, 90),
+    #     (0.3, None), (0.3, 30), (0.3, 90),
+    #     ]
+    # for threshold, interval in experiments:
+    #     evaluate_class(
+    #         rubric=rubric, 
+    #         in_dir=Path("old-runs/gsu-summer-in"),
+    #         preprocess_dir=Path(f"old-runs/frame-sampling/gsu-{threshold}-{interval}/preprocess"), 
+    #         output_dir=Path(f"old-runs/frame-sampling/gsu-{threshold}-{interval}/results"),
+    #         model="gpt-5.6-terra",
+    #         max_loop_iters=3,
+    #         scene_threshold=threshold,
+    #         sample_interval_seconds=interval,
+    #         )
+
+    
+

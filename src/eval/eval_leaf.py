@@ -25,6 +25,7 @@ from src.util import log
 
 AIDE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_PREPROCESS_DIR = AIDE_DIR / "preprocess-test"
+DEFAULT_SUBMISSIONS_DIR = AIDE_DIR / "in"
 DEFAULT_MAX_EVIDENCE_ITERATIONS = 3
 
 LeafVerdict = Literal["met", "not_met", "undetermined"]
@@ -35,8 +36,12 @@ class PlannedToolCall(BaseModel):
     rationale: str = Field(
         description="One sentence on why this tool helps judge the criterion."
     )
-    offset: int | None = Field(default=None, description="For read_transcript or read_excel.")
-    max_chars: int | None = Field(default=None, description="For read_transcript or read_excel.")
+    offset: int | None = Field(
+        default=None, description="For read_transcript, read_excel, read_txt, or read_source."
+    )
+    max_chars: int | None = Field(
+        default=None, description="For read_transcript, read_excel, read_txt, or read_source."
+    )
     query: str | None = Field(default=None, description="For search_transcript.")
     max_hits: int | None = Field(default=None, description="For search_transcript.")
     frame_indices: list[int] | None = Field(
@@ -45,6 +50,10 @@ class PlannedToolCall(BaseModel):
     include_formulas: bool | None = Field(default=None, description="For read_excel.")
     include_charts: bool | None = Field(default=None, description="For read_excel.")
     include_chart_values: bool | None = Field(default=None, description="For read_excel.")
+    source: str | None = Field(
+        default=None,
+        description="For read_source: filename under sources/ (reference material, not student work).",
+    )
 
     def to_arguments(self) -> dict[str, Any]:
         args: dict[str, Any] = {}
@@ -64,6 +73,8 @@ class PlannedToolCall(BaseModel):
             args["include_charts"] = self.include_charts
         if self.include_chart_values is not None:
             args["include_chart_values"] = self.include_chart_values
+        if self.source is not None:
+            args["source"] = self.source
         return args
 
 
@@ -171,7 +182,8 @@ def _plan_tools(
         )
     else:
         tool_list = (
-            "(none — no preprocessed transcript, frame summaries, metadata, or excel content found for this submission)"
+            "(none — no preprocessed transcript, frame summaries, metadata, excel, "
+            "text content, or reference sources found for this submission)"
         )
 
     prior_blob = ""
@@ -203,7 +215,11 @@ def _plan_tools(
                 "Choose only tools from the available list. Prefer targeted searches over "
                 "reading entire transcripts when the criterion mentions specific concepts. "
                 "Evidence gathering may take multiple plan→execute rounds; plan only the "
-                "calls needed for this round."
+                "calls needed for this round. "
+                "list_sources and read_source access assignment reference materials under "
+                "sources/ — these are NOT part of the student's submission; use them only "
+                "as external context (e.g. citations or claimed facts), never as evidence "
+                "of what the student wrote."
             ),
         },
         {
@@ -283,7 +299,9 @@ def _plan_evaluation(
                 "Set sufficient_to_judge to true only if the evidence is enough to decide "
                 "met or not_met. If key details are still missing (for example only frame "
                 "previews were listed and full frame annotations were not read), set "
-                "sufficient_to_judge to false and name what should be gathered next."
+                "sufficient_to_judge to false and name what should be gathered next. "
+                "Reference sources (list_sources / read_source) are not student work; "
+                "do not credit the student for content that appears only in those sources."
             ),
         },
         {
@@ -324,7 +342,10 @@ def _determine_verdict(
                 "or undetermined for this student submission.\n"
                 "- met: clearly satisfied\n"
                 "- not_met: enough information to judge and the criterion is not satisfied\n"
-                "- undetermined: submission silent on this requirement or insufficient evidence"
+                "- undetermined: submission silent on this requirement or insufficient evidence\n"
+                "Reference sources from list_sources/read_source are assignment materials, "
+                "not the student's work — never treat them as evidence that the student met "
+                "a criterion."
             ),
         },
         {
@@ -348,6 +369,7 @@ def eval_leaf(
     submission_alias: str,
     *,
     preprocess_dir: Path | str | None = None,
+    submissions_dir: Path | str | None = None,
     model: str | None = None,
     max_evidence_iterations: int | None = None,
 ) -> dict[str, Any]:
@@ -360,7 +382,8 @@ def eval_leaf(
 
     Phases per evidence round:
     1. Plan which evidence tools to use for this criterion.
-    2. Execute those tools against transcript / frame-summary / excel artifacts.
+    2. Execute those tools against transcript / frame-summary / excel / text
+       artifacts, and optionally assignment reference sources.
     3. Assess whether the accumulated evidence is enough to judge.
 
     After the loop:
@@ -371,7 +394,11 @@ def eval_leaf(
     if not pdir.is_absolute():
         pdir = (AIDE_DIR / pdir).resolve()
 
-    ctx = SubmissionContext.load(submission_alias, pdir)
+    sdir = Path(submissions_dir) if submissions_dir is not None else DEFAULT_SUBMISSIONS_DIR
+    if not sdir.is_absolute():
+        sdir = (AIDE_DIR / sdir).resolve()
+
+    ctx = SubmissionContext.load(submission_alias, pdir, submissions_dir=sdir)
     model_name = model or _default_model()
     client = OpenAIClient().client
     max_iters = (
@@ -391,8 +418,8 @@ def eval_leaf(
     if not available_tools(ctx):
         eval_plan = EvalPlan(
             reasoning=(
-                "No preprocessed transcript, frame summaries, metadata, or excel content were found for this submission; "
-                "cannot gather evidence."
+                "No preprocessed transcript, frame summaries, metadata, excel, text content, "
+                "or reference sources were found for this submission; cannot gather evidence."
             ),
             sufficient_to_judge=False,
         )
